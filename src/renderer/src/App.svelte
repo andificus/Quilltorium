@@ -1,5 +1,6 @@
 <script lang="ts">
   import NavRail from './components/NavRail.svelte'
+  import SceneListSidebar from './components/SceneListSidebar.svelte'
   import WelcomeView from './views/WelcomeView.svelte'
   import { appState } from './stores/app'
 </script>
@@ -9,7 +10,7 @@
   <div class="title-bar">
     <span class="title-bar-app">Quilltorium</span>
     {#if $appState.projectTitle}
-      <span class="title-bar-sep">—</span>
+      <span class="title-bar-sep">&mdash;</span>
       <span class="title-bar-project">{$appState.projectTitle}</span>
     {/if}
   </div>
@@ -19,13 +20,20 @@
     <NavRail />
 
     {#if $appState.projectPath === null}
-      <!-- No project open — show welcome screen -->
       <WelcomeView />
     {:else}
-      <!-- Project open — show section content -->
       <div class="app-content">
-        <div class="content-placeholder">
-          Section content coming soon — Issue #20 onwards
+        {#if $appState.activeSection === 'scenes'}
+          <SceneListSidebar />
+        {/if}
+        <div class="main-editor">
+          <div class="editor-placeholder">
+            {#if $appState.activeSceneId}
+              Editor coming in Issue #21
+            {:else}
+              Select a scene to start writing
+            {/if}
+          </div>
         </div>
       </div>
     {/if}
@@ -84,7 +92,13 @@
     overflow: hidden;
   }
 
-  .content-placeholder {
+  .main-editor {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .editor-placeholder {
     flex: 1;
     display: flex;
     align-items: center;

@@ -1,25 +1,22 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { ProjectMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata } from '../../src-shared/types'
 
-/**
- * The API exposed to the renderer process via contextBridge.
- * All communication with the main process goes through these methods.
- */
 const api = {
-  /**
-   * Open an existing project by selecting a folder.
-   * Returns the project metadata if successful, or null if cancelled.
-   */
   openProject: (): Promise<ProjectMetadata | null> =>
     ipcRenderer.invoke('project:open'),
 
-  /**
-   * Create a new project in a selected folder.
-   * Returns the project metadata if successful, or null if cancelled.
-   */
   createProject: (title: string, author: string): Promise<ProjectMetadata | null> =>
     ipcRenderer.invoke('project:create', title, author),
+
+  listScenes: (): Promise<SceneMetadata[]> =>
+    ipcRenderer.invoke('scenes:list'),
+
+  createScene: (title: string): Promise<SceneMetadata | null> =>
+    ipcRenderer.invoke('scenes:create', title),
+
+  reorderScenes: (updates: Array<{ id: string; order: number }>): Promise<void> =>
+    ipcRenderer.invoke('scenes:reorder', updates),
 }
 
 if (process.contextIsolated) {

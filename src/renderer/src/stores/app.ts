@@ -1,37 +1,40 @@
 import { writable } from 'svelte/store'
 
-/** The sections available in the navigation rail */
 export type AppSection = 'scenes' | 'characters' | 'locations' | 'lore' | 'notes' | 'stats'
 
-/** Global application state */
 interface AppState {
-  /** Currently active section in the nav rail */
   activeSection: AppSection
-  /** Path to the currently open project folder, or null if none open */
   projectPath: string | null
-  /** Display title of the currently open project */
   projectTitle: string | null
+  activeSceneId: string | null
 }
 
 const initialState: AppState = {
   activeSection: 'scenes',
   projectPath: null,
-  projectTitle: null
+  projectTitle: null,
+  activeSceneId: null
 }
 
 export const appState = writable<AppState>(initialState)
 
-/** Switch the active section */
 export function setActiveSection(section: AppSection): void {
   appState.update(state => ({ ...state, activeSection: section }))
 }
 
-/** Set the open project */
 export function setProject(id: string, title: string): void {
   appState.update(state => ({ ...state, projectPath: id, projectTitle: title }))
 }
 
-/** Close the current project */
+export function setActiveScene(id: string): void {
+  appState.update(state => ({ ...state, activeSceneId: id }))
+}
+
 export function closeProject(): void {
-  appState.update(state => ({ ...state, projectPath: null, projectTitle: null }))
+  appState.update(state => ({
+    ...state,
+    projectPath: null,
+    projectTitle: null,
+    activeSceneId: null
+  }))
 }
