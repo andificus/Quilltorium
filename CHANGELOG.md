@@ -6,11 +6,17 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## Unreleased
+## v0.0.1 — 2026-04-18
 
 ### Infrastructure
 - Initial repository setup
-- Project plan and developer notes committed
+- Electron + TypeScript + Svelte boilerplate
+- StorageAdapter interface and ElectronAdapter implementation
+- Shared TypeScript types for all data models
+- electron-builder configured for Windows
+- electron-updater wired with user-prompted update flow
+- GitHub Actions build and release workflow
+- package.json updated with correct project metadata
 
 ---
 
