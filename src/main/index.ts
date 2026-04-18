@@ -1,8 +1,11 @@
-import { app, shell, BrowserWindow, dialog } from 'electron'
+import { app, shell, BrowserWindow, dialog, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
+import { ElectronAdapter } from '../../src-shared/storage/ElectronAdapter'
+import type { ProjectMetadata } from '../../src-shared/types'
+
 
 /** The main application window instance */
 let mainWindow: BrowserWindow | null = null
@@ -116,6 +119,100 @@ app.whenReady().then(() => {
   if (!is.dev) {
     setupUpdater()
     autoUpdater.checkForUpdates()
+  }
+})
+
+// ── IPC Handlers ────────────────────────────────────────────────────────────
+
+const adapter = new ElectronAdapter()
+
+/**
+ * Opens a folder picker and loads an existing project.
+ * Returns the project metadata or null if cancelled.
+ */
+ipcMain.handle('project:open', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Open Novel Project',
+    properties: ['openDirectory']
+  })
+
+  if (result.canceled || result.filePaths.length === 0) return null
+
+  const projectPath = result.filePaths[0]
+  const projectJsonPath = join(projectPath, 'project.json')
+
+  try {
+    const exists = await adapter.exists(projectJsonPath)
+    if (!exists) {
+      await dialog.showMessageBox({
+        type: 'error',
+        title: 'Not a Quilltorium Project',
+        message: 'The selected folder does not contain a Quilltorium project.',
+        detail: 'Please select a folder that was created by Quilltorium.'
+      })
+      return null
+    }
+
+    const raw = await adapter.readFile(projectJsonPath)
+    const metadata: ProjectMetadata = JSON.parse(raw)
+    metadata.lastOpened = new Date().toISOString()
+    await adapter.writeFile(projectJsonPath, JSON.stringify(metadata, null, 2))
+    return metadata
+  } catch (error) {
+    console.error('Failed to open project:', error)
+    return null
+  }
+})
+
+/**
+ * Opens a folder picker, then creates a new project structure.
+ * Returns the project metadata or null if cancelled.
+ */
+ipcMain.handle('project:create', async (_event, title: string, author: string) => {
+  const result = await dialog.showOpenDialog({
+    title: 'Choose Project Location',
+    properties: ['openDirectory']
+  })
+
+  if (result.canceled || result.filePaths.length === 0) return null
+
+  const projectPath = join(result.filePaths[0], title.replace(/[^a-zA-Z0-9 _-]/g, '').trim())
+
+  try {
+    // Create folder structure
+    await adapter.createDirectory(projectPath)
+    await adapter.createDirectory(join(projectPath, 'scenes'))
+    await adapter.createDirectory(join(projectPath, 'characters'))
+    await adapter.createDirectory(join(projectPath, 'locations'))
+    await adapter.createDirectory(join(projectPath, 'lore'))
+    await adapter.createDirectory(join(projectPath, 'notes'))
+    await adapter.createDirectory(join(projectPath, 'assets'))
+
+    // Write project.json
+    const now = new Date().toISOString()
+    const metadata: ProjectMetadata = {
+      id: crypto.randomUUID(),
+      title,
+      author,
+      formatVersion: '1.0',
+      created: now,
+      lastOpened: now,
+      settings: {
+        targetWordCount: null,
+        defaultStatus: 'draft',
+        uiMode: 'advanced'
+      }
+    }
+
+    await adapter.writeFile(
+      join(projectPath, 'project.json'),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to create project:', error)
+    return null
   }
 })
 

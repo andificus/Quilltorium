@@ -1,13 +1,42 @@
 <script lang="ts">
-  // Placeholder handlers — wired up properly in Issue #19
+  import { setProject } from '../stores/app'
+  import NewProjectModal from '../components/NewProjectModal.svelte'
+
+  let showNewProjectModal = false
+
   function handleNewProject(): void {
-    console.log('New project — coming in Issue #19')
+    showNewProjectModal = true
   }
 
-  function handleOpenProject(): void {
-    console.log('Open project — coming in Issue #19')
+  async function handleModalConfirm(
+    e: CustomEvent<{ title: string; author: string }>
+  ): Promise<void> {
+    showNewProjectModal = false
+    const { title, author } = e.detail
+    const metadata = await window.api.createProject(title, author)
+    if (metadata) {
+      setProject(metadata.id, metadata.title)
+    }
+  }
+
+  function handleModalCancel(): void {
+    showNewProjectModal = false
+  }
+
+  async function handleOpenProject(): Promise<void> {
+    const metadata = await window.api.openProject()
+    if (metadata) {
+      setProject(metadata.id, metadata.title)
+    }
   }
 </script>
+
+{#if showNewProjectModal}
+  <NewProjectModal
+    on:confirm={handleModalConfirm}
+    on:cancel={handleModalCancel}
+  />
+{/if}
 
 <div class="welcome">
   <div class="welcome-content">
