@@ -27,8 +27,8 @@ export function setActiveSection(section: AppSection): void {
 }
 
 /** Set the open project */
-export function setProject(path: string, title: string): void {
-  appState.update(state => ({ ...state, projectPath: path, projectTitle: title }))
+export function setProject(id: string, title: string): void {
+  appState.update(state => ({ ...state, projectPath: id, projectTitle: title }))
 }
 
 /** Close the current project */
