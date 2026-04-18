@@ -1,15 +1,18 @@
 /// <reference types="svelte" />
 /// <reference types="vite/client" />
 
-import type { ProjectMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata } from '../../src-shared/types'
 
 declare global {
   interface Window {
     api: {
       openProject(): Promise<ProjectMetadata | null>
       createProject(title: string, author: string): Promise<ProjectMetadata | null>
+      listScenes(): Promise<SceneMetadata[]>
+      createScene(title: string): Promise<SceneMetadata | null>
+      reorderScenes(updates: Array<{ id: string; order: number }>): Promise<void>
     }
   }
 }
 
-export type { ProjectMetadata }
+export type { ProjectMetadata, SceneMetadata }

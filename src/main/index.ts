@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { ElectronAdapter } from '../../src-shared/storage/ElectronAdapter'
-import type { ProjectMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata } from '../../src-shared/types'
 
 
 /** The main application window instance */
@@ -126,6 +126,19 @@ app.whenReady().then(() => {
 
 const adapter = new ElectronAdapter()
 
+/** The filesystem path of the currently open project */
+let currentProjectPath: string | null = null
+
+/** Convert a title to a URL-safe slug */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim() || 'untitled'
+}
+
 /**
  * Opens a folder picker and loads an existing project.
  * Returns the project metadata or null if cancelled.
@@ -157,6 +170,7 @@ ipcMain.handle('project:open', async () => {
     const metadata: ProjectMetadata = JSON.parse(raw)
     metadata.lastOpened = new Date().toISOString()
     await adapter.writeFile(projectJsonPath, JSON.stringify(metadata, null, 2))
+    currentProjectPath = projectPath
     return metadata
   } catch (error) {
     console.error('Failed to open project:', error)
@@ -209,10 +223,120 @@ ipcMain.handle('project:create', async (_event, title: string, author: string) =
       JSON.stringify(metadata, null, 2)
     )
 
+    currentProjectPath = projectPath
     return metadata
   } catch (error) {
     console.error('Failed to create project:', error)
     return null
+  }
+})
+
+/** List all scenes for the current project, sorted by order */
+ipcMain.handle('scenes:list', async (): Promise<SceneMetadata[]> => {
+  if (!currentProjectPath) return []
+
+  try {
+    const scenesDir = join(currentProjectPath, 'scenes')
+    const files = await adapter.listFiles(scenesDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    const scenes: SceneMetadata[] = []
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        scenes.push(JSON.parse(raw) as SceneMetadata)
+      } catch {
+        // Skip malformed files
+      }
+    }
+
+    return scenes.sort((a, b) => a.order - b.order)
+  } catch (error) {
+    console.error('Failed to list scenes:', error)
+    return []
+  }
+})
+
+/** Create a new scene with the given title */
+ipcMain.handle('scenes:create', async (_event, title: string): Promise<SceneMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    const scenesDir = join(currentProjectPath, 'scenes')
+    const existingFiles = await adapter.listFiles(scenesDir)
+    const existingCount = existingFiles.filter(f => f.endsWith('.json')).length
+
+    const baseSlug = slugify(title)
+    let slug = baseSlug
+    let counter = 1
+
+    // Handle slug collisions
+    while (await adapter.exists(join(scenesDir, `${slug}.json`))) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+    }
+
+    const now = new Date().toISOString()
+    const metadata: SceneMetadata = {
+      id: crypto.randomUUID(),
+      title,
+      order: existingCount + 1,
+      act: 1,
+      chapter: null,
+      status: 'draft',
+      pov: null,
+      characters: [],
+      location: null,
+      inWorldDate: null,
+      tags: [],
+      wordCount: 0,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(scenesDir, `${slug}.md`), '')
+    await adapter.writeFile(
+      join(scenesDir, `${slug}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to create scene:', error)
+    return null
+  }
+})
+
+/** Update the order field of multiple scenes */
+ipcMain.handle('scenes:reorder', async (
+  _event,
+  updates: Array<{ id: string; order: number }>
+): Promise<void> => {
+  if (!currentProjectPath) return
+
+  try {
+    const scenesDir = join(currentProjectPath, 'scenes')
+    const files = await adapter.listFiles(scenesDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const update of updates) {
+      for (const file of jsonFiles) {
+        try {
+          const raw = await adapter.readFile(file)
+          const metadata = JSON.parse(raw) as SceneMetadata
+          if (metadata.id === update.id) {
+            metadata.order = update.order
+            metadata.updatedAt = new Date().toISOString()
+            await adapter.writeFile(file, JSON.stringify(metadata, null, 2))
+            break
+          }
+        } catch {
+          // Skip malformed files
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to reorder scenes:', error)
   }
 })
 
