@@ -1,7 +1,7 @@
 /// <reference types="svelte" />
 /// <reference types="vite/client" />
 
-import type { ProjectMetadata, SceneMetadata, CharacterMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata } from '../../src-shared/types'
 
 declare global {
   interface Window {
@@ -28,8 +28,17 @@ declare global {
         characterId: string,
         updates: Partial<CharacterMetadata>
       ): Promise<boolean>
+      listLocations(): Promise<LocationMetadata[]>
+      createLocation(name: string): Promise<LocationMetadata | null>
+      readLocation(locationId: string): Promise<string>
+      saveLocation(locationId: string, content: string): Promise<boolean>
+      deleteLocation(locationId: string): Promise<boolean>
+      updateLocationMetadata(
+        locationId: string,
+        updates: Partial<LocationMetadata>
+      ): Promise<boolean>
     }
   }
 }
 
-export type { ProjectMetadata, SceneMetadata, CharacterMetadata }
+export type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata }

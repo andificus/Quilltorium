@@ -11,10 +11,14 @@
   import CharacterEditor from './components/CharacterEditor.svelte'
   import { resetCharacters } from './stores/characters'
   import CharacterMetadataPanel from './components/CharacterMetadataPanel.svelte'
+  import LocationListSidebar from './components/LocationListSidebar.svelte'
+  import LocationEditor from './components/LocationEditor.svelte'
+  import { resetLocations } from './stores/locations'
 
   function handleCloseProject(): void {
     resetScenes()
     resetCharacters()
+    resetLocations()
     closeProject()
   }
 
@@ -57,6 +61,8 @@
           <SceneListSidebar />
         {:else if $appState.activeSection === 'characters'}
           <CharacterListSidebar />
+        {:else if $appState.activeSection === 'locations'}
+          <LocationListSidebar />  
         {/if}
 
         <div class="main-editor">
@@ -67,15 +73,23 @@
               {#key $appState.activeCharacterId}
                 <CharacterEditor characterId={$appState.activeCharacterId} />
               {/key}
-              <CharacterMetadataPanel characterId={$appState.activeCharacterId} />
+                <CharacterMetadataPanel characterId={$appState.activeCharacterId} />
             {:else}
-              <div class="editor-placeholder">Select a character to view their sheet</div>
+                <div class="editor-placeholder">Select a character to view their sheet</div>
             {/if}
+          {:else if $appState.activeSection === 'locations'}
+            {#if $appState.activeLocationId}
+              {#key $appState.activeLocationId}
+                <LocationEditor locationId={$appState.activeLocationId} />
+              {/key}
+            {:else}
+              <div class="editor-placeholder">Select a location to view its page</div>
+              {/if}
           {:else if $appState.activeSceneId}
             {#key $appState.activeSceneId}
               <SceneEditor sceneId={$appState.activeSceneId} />
             {/key}
-              <SceneMetadataPanel sceneId={$appState.activeSceneId} />
+            <SceneMetadataPanel sceneId={$appState.activeSceneId} />
           {:else}
             <div class="editor-placeholder">Select a scene to start writing</div>
           {/if}
