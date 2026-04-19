@@ -14,6 +14,7 @@
   import LocationListSidebar from './components/LocationListSidebar.svelte'
   import LocationEditor from './components/LocationEditor.svelte'
   import { resetLocations } from './stores/locations'
+  import LocationMetadataPanel from './components/LocationMetadataPanel.svelte'
 
   function handleCloseProject(): void {
     resetScenes()
@@ -82,6 +83,7 @@
               {#key $appState.activeLocationId}
                 <LocationEditor locationId={$appState.activeLocationId} />
               {/key}
+              <LocationMetadataPanel locationId={$appState.activeLocationId} />
             {:else}
               <div class="editor-placeholder">Select a location to view its page</div>
               {/if}
