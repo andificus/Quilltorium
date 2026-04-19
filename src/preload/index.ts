@@ -19,13 +19,19 @@ const api = {
     ipcRenderer.invoke('scenes:reorder', updates),
 
   readScene: (sceneId: string): Promise<string> =>
-  ipcRenderer.invoke('scenes:read', sceneId),
+    ipcRenderer.invoke('scenes:read', sceneId),
 
   saveScene: (sceneId: string, content: string): Promise<number> =>
-  ipcRenderer.invoke('scenes:save', sceneId, content),
+    ipcRenderer.invoke('scenes:save', sceneId, content),
 
   deleteScene: (sceneId: string): Promise<boolean> =>
-  ipcRenderer.invoke('scenes:delete', sceneId),
+    ipcRenderer.invoke('scenes:delete', sceneId),
+
+  updateSceneMetadata: (
+    sceneId: string,
+    updates: Partial<import('../../src-shared/types').SceneMetadata>
+  ): Promise<boolean> =>
+    ipcRenderer.invoke('scenes:update-metadata', sceneId, updates)
 }
 
 if (process.contextIsolated) {

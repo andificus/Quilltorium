@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SceneMetadataPanel from './components/SceneMetadataPanel.svelte'
   import SceneEditor from './components/SceneEditor.svelte'
   import NavRail from './components/NavRail.svelte'
   import SceneListSidebar from './components/SceneListSidebar.svelte'
@@ -41,6 +42,7 @@
             {#key $appState.activeSceneId}
               <SceneEditor sceneId={$appState.activeSceneId} />
             {/key}
+            <SceneMetadataPanel sceneId={$appState.activeSceneId} />
           {:else}
             <div class="editor-placeholder">Select a scene to start writing</div>
           {/if}
