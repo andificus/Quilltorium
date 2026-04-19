@@ -11,6 +11,9 @@ declare global {
       listScenes(): Promise<SceneMetadata[]>
       createScene(title: string): Promise<SceneMetadata | null>
       reorderScenes(updates: Array<{ id: string; order: number }>): Promise<void>
+      readScene(sceneId: string): Promise<string>
+      saveScene(sceneId: string, content: string): Promise<number>
+      deleteScene(sceneId: string): Promise<boolean>
     }
   }
 }

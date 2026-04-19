@@ -27,7 +27,7 @@ export function setProject(id: string, title: string): void {
 }
 
 export function setActiveScene(id: string): void {
-  appState.update(state => ({ ...state, activeSceneId: id }))
+  appState.update(state => ({ ...state, activeSceneId: id || null }))
 }
 
 export function closeProject(): void {
