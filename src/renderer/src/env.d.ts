@@ -18,6 +18,7 @@ declare global {
         sceneId: string,
         updates: Partial<SceneMetadata>
       ): Promise<boolean>
+      exportManuscript(): Promise<boolean>
     }
   }
 }

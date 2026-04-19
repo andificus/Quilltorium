@@ -12,6 +12,10 @@
     resetScenes()
     closeProject()
   }
+
+  async function handleExport(): Promise<void> {
+    await window.api.exportManuscript()
+  }
 </script>
 
 <div class="app-shell">
@@ -21,9 +25,18 @@
     {#if $appState.projectTitle}
       <span class="title-bar-sep">&mdash;</span>
       <span class="title-bar-project">{$appState.projectTitle}</span>
-      <button class="btn-close-project" on:click={handleCloseProject} title="Close project">
-      ✕
-    </button>
+      <div class="title-bar-actions">
+        <button
+          class="btn-export"
+          on:click={handleExport}
+          title="Export manuscript to .docx"
+        >
+          Export
+        </button>
+        <button class="btn-close-project" on:click={handleCloseProject} title="Close project">
+          ✕
+        </button>
+      </div>
     {/if}
   </div>
 
@@ -124,7 +137,6 @@
   }
 
   .btn-close-project {
-    margin-left: auto;
     background: none;
     border: none;
     color: var(--color-text-faint);
@@ -135,6 +147,32 @@
     -webkit-app-region: no-drag;
     transition: color 0.15s;
   }
+
+  .title-bar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  -webkit-app-region: no-drag;
+}
+
+.btn-export {
+  padding: 4px 12px;
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  color: var(--color-accent);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-export:hover {
+  background: var(--color-accent);
+  color: #1a1a1f;
+}
 
 .btn-close-project:hover {
   color: var(--color-text);

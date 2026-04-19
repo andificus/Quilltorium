@@ -31,7 +31,10 @@ const api = {
     sceneId: string,
     updates: Partial<import('../../src-shared/types').SceneMetadata>
   ): Promise<boolean> =>
-    ipcRenderer.invoke('scenes:update-metadata', sceneId, updates)
+    ipcRenderer.invoke('scenes:update-metadata', sceneId, updates),
+
+  exportManuscript: (): Promise<boolean> =>
+    ipcRenderer.invoke('manuscript:export'),
 }
 
 if (process.contextIsolated) {
