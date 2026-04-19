@@ -10,6 +10,7 @@
   import CharacterListSidebar from './components/CharacterListSidebar.svelte'
   import CharacterEditor from './components/CharacterEditor.svelte'
   import { resetCharacters } from './stores/characters'
+  import CharacterMetadataPanel from './components/CharacterMetadataPanel.svelte'
 
   function handleCloseProject(): void {
     resetScenes()
@@ -66,6 +67,7 @@
               {#key $appState.activeCharacterId}
                 <CharacterEditor characterId={$appState.activeCharacterId} />
               {/key}
+              <CharacterMetadataPanel characterId={$appState.activeCharacterId} />
             {:else}
               <div class="editor-placeholder">Select a character to view their sheet</div>
             {/if}
