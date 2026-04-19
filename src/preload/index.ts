@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { ProjectMetadata, SceneMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata } from '../../src-shared/types'
 
 const api = {
   openProject: (): Promise<ProjectMetadata | null> =>
@@ -35,6 +35,27 @@ const api = {
 
   exportManuscript: (): Promise<boolean> =>
     ipcRenderer.invoke('manuscript:export'),
+
+  listCharacters: (): Promise<CharacterMetadata[]> =>
+  ipcRenderer.invoke('characters:list'),
+
+  createCharacter: (name: string): Promise<CharacterMetadata | null> =>
+    ipcRenderer.invoke('characters:create', name),
+
+  readCharacter: (characterId: string): Promise<string> =>
+    ipcRenderer.invoke('characters:read', characterId),
+
+  saveCharacter: (characterId: string, content: string): Promise<boolean> =>
+    ipcRenderer.invoke('characters:save', characterId, content),
+
+  deleteCharacter: (characterId: string): Promise<boolean> =>
+    ipcRenderer.invoke('characters:delete', characterId),
+
+  updateCharacterMetadata: (
+    characterId: string,
+    updates: Partial<CharacterMetadata>
+  ): Promise<boolean> =>
+    ipcRenderer.invoke('characters:update-metadata', characterId, updates),
 }
 
 if (process.contextIsolated) {

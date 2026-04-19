@@ -7,9 +7,13 @@
   import { appState, closeProject } from './stores/app'
   import { resetScenes } from './stores/scenes'
   import StatsView from './views/StatsView.svelte'
+  import CharacterListSidebar from './components/CharacterListSidebar.svelte'
+  import CharacterEditor from './components/CharacterEditor.svelte'
+  import { resetCharacters } from './stores/characters'
 
   function handleCloseProject(): void {
     resetScenes()
+    resetCharacters()
     closeProject()
   }
 
@@ -50,15 +54,26 @@
       <div class="app-content">
         {#if $appState.activeSection === 'scenes'}
           <SceneListSidebar />
+        {:else if $appState.activeSection === 'characters'}
+          <CharacterListSidebar />
         {/if}
+
         <div class="main-editor">
           {#if $appState.activeSection === 'stats'}
             <StatsView />
+          {:else if $appState.activeSection === 'characters'}
+            {#if $appState.activeCharacterId}
+              {#key $appState.activeCharacterId}
+                <CharacterEditor characterId={$appState.activeCharacterId} />
+              {/key}
+            {:else}
+              <div class="editor-placeholder">Select a character to view their sheet</div>
+            {/if}
           {:else if $appState.activeSceneId}
             {#key $appState.activeSceneId}
               <SceneEditor sceneId={$appState.activeSceneId} />
             {/key}
-            <SceneMetadataPanel sceneId={$appState.activeSceneId} />
+              <SceneMetadataPanel sceneId={$appState.activeSceneId} />
           {:else}
             <div class="editor-placeholder">Select a scene to start writing</div>
           {/if}
