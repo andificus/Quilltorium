@@ -1,7 +1,7 @@
 # DEV_NOTES.md — Developer Reference
 **Last Updated:** (update this every time you change something here)
-**Current Phase:** Phase 0 — Infrastructure & Repository Setup
-**Current Version:** 0.0.0 (pre-release)
+**Current Phase:** Phase 2 — Story Structure Tools
+**Current Version:** 0.1.0 (pre-release)
 
 > This file is the first thing to read when returning to this codebase after any break.
 > It is also the reference document for anyone contributing to the project.

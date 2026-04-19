@@ -1,6 +1,6 @@
 {
   "name": "quilltorium",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A free, open source local-first desktop app for writing and managing novels",
   "main": "./out/main/index.js",
   "author": "andificus",
