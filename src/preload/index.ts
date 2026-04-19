@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { ProjectMetadata, SceneMetadata, CharacterMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata } from '../../src-shared/types'
 
 const api = {
   openProject: (): Promise<ProjectMetadata | null> =>
@@ -56,6 +56,27 @@ const api = {
     updates: Partial<CharacterMetadata>
   ): Promise<boolean> =>
     ipcRenderer.invoke('characters:update-metadata', characterId, updates),
+
+  listLocations: (): Promise<LocationMetadata[]> =>
+    ipcRenderer.invoke('locations:list'),
+
+  createLocation: (name: string): Promise<LocationMetadata | null> =>
+    ipcRenderer.invoke('locations:create', name),
+
+  readLocation: (locationId: string): Promise<string> =>
+    ipcRenderer.invoke('locations:read', locationId),
+
+  saveLocation: (locationId: string, content: string): Promise<boolean> =>
+    ipcRenderer.invoke('locations:save', locationId, content),
+
+  deleteLocation: (locationId: string): Promise<boolean> =>
+    ipcRenderer.invoke('locations:delete', locationId),
+
+  updateLocationMetadata: (
+    locationId: string,
+    updates: Partial<LocationMetadata>
+  ): Promise<boolean> =>
+    ipcRenderer.invoke('locations:update-metadata', locationId, updates)  
 }
 
 if (process.contextIsolated) {

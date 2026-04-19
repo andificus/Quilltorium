@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { ElectronAdapter } from '../../src-shared/storage/ElectronAdapter'
-import type { ProjectMetadata, SceneMetadata, CharacterMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata } from '../../src-shared/types'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx'
 
 
@@ -834,6 +834,213 @@ ipcMain.handle('characters:update-metadata', async (
     return false
   } catch (error) {
     console.error('Failed to update character metadata:', error)
+    return false
+  }
+})
+
+// ── Location Handlers ────────────────────────────────────────────────────────
+
+/** List all locations for the current project, sorted alphabetically */
+ipcMain.handle('locations:list', async (): Promise<LocationMetadata[]> => {
+  if (!currentProjectPath) return []
+
+  try {
+    const locationsDir = join(currentProjectPath, 'locations')
+    const files = await adapter.listFiles(locationsDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    const locations: LocationMetadata[] = []
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        locations.push(JSON.parse(raw) as LocationMetadata)
+      } catch {
+        // Skip malformed files
+      }
+    }
+
+    return locations.sort((a, b) => a.name.localeCompare(b.name))
+  } catch (error) {
+    console.error('Failed to list locations:', error)
+    return []
+  }
+})
+
+/** Create a new location */
+ipcMain.handle('locations:create', async (
+  _event,
+  name: string
+): Promise<LocationMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    const locationsDir = join(currentProjectPath, 'locations')
+
+    const baseSlug = slugify(name)
+    let slug = baseSlug
+    let counter = 1
+
+    while (await adapter.exists(join(locationsDir, `${slug}.json`))) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+    }
+
+    const now = new Date().toISOString()
+    const metadata: LocationMetadata = {
+      id: crypto.randomUUID(),
+      slug,
+      name,
+      tags: [],
+      mapImage: null,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(locationsDir, `${slug}.md`), `# ${name}\n\n`)
+    await adapter.writeFile(
+      join(locationsDir, `${slug}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to create location:', error)
+    return null
+  }
+})
+
+/** Read a location's Markdown content */
+ipcMain.handle('locations:read', async (
+  _event,
+  locationId: string
+): Promise<string> => {
+  if (!currentProjectPath) return ''
+
+  try {
+    const locationsDir = join(currentProjectPath, 'locations')
+    const files = await adapter.listFiles(locationsDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LocationMetadata
+        if (metadata.id === locationId) {
+          return await adapter.readFile(file.replace('.json', '.md'))
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return ''
+  } catch (error) {
+    console.error('Failed to read location:', error)
+    return ''
+  }
+})
+
+/** Save a location's Markdown content */
+ipcMain.handle('locations:save', async (
+  _event,
+  locationId: string,
+  content: string
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const locationsDir = join(currentProjectPath, 'locations')
+    const files = await adapter.listFiles(locationsDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LocationMetadata
+        if (metadata.id === locationId) {
+          await adapter.writeFile(file.replace('.json', '.md'), content)
+          metadata.updatedAt = new Date().toISOString()
+          await adapter.writeFile(file, JSON.stringify(metadata, null, 2))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to save location:', error)
+    return false
+  }
+})
+
+/** Delete a location */
+ipcMain.handle('locations:delete', async (
+  _event,
+  locationId: string
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const locationsDir = join(currentProjectPath, 'locations')
+    const files = await adapter.listFiles(locationsDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LocationMetadata
+        if (metadata.id === locationId) {
+          await adapter.deleteFile(file)
+          await adapter.deleteFile(file.replace('.json', '.md'))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to delete location:', error)
+    return false
+  }
+})
+
+/** Update a location's metadata */
+ipcMain.handle('locations:update-metadata', async (
+  _event,
+  locationId: string,
+  updates: Partial<LocationMetadata>
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const locationsDir = join(currentProjectPath, 'locations')
+    const files = await adapter.listFiles(locationsDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LocationMetadata
+        if (metadata.id === locationId) {
+          const updated = {
+            ...metadata,
+            ...updates,
+            id: metadata.id,
+            slug: metadata.slug,
+            createdAt: metadata.createdAt,
+            updatedAt: new Date().toISOString()
+          }
+          await adapter.writeFile(file, JSON.stringify(updated, null, 2))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to update location metadata:', error)
     return false
   }
 })

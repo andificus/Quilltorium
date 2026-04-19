@@ -8,6 +8,7 @@ interface AppState {
   projectTitle: string | null
   activeSceneId: string | null
   activeCharacterId: string | null
+  activeLocationId: string | null
 }
 
 const initialState: AppState = {
@@ -15,7 +16,8 @@ const initialState: AppState = {
   projectPath: null,
   projectTitle: null,
   activeSceneId: null,
-  activeCharacterId: null
+  activeCharacterId: null,
+  activeLocationId: null
 }
 
 export const appState = writable<AppState>(initialState)
@@ -38,6 +40,7 @@ export function closeProject(): void {
     projectPath: null,
     projectTitle: null,
     activeSceneId: null,
-    activeCharacterId: null
+    activeCharacterId: null,
+    activeLocationId: null
   }))
 }
