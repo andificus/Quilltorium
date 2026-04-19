@@ -17,6 +17,15 @@ const api = {
 
   reorderScenes: (updates: Array<{ id: string; order: number }>): Promise<void> =>
     ipcRenderer.invoke('scenes:reorder', updates),
+
+  readScene: (sceneId: string): Promise<string> =>
+  ipcRenderer.invoke('scenes:read', sceneId),
+
+  saveScene: (sceneId: string, content: string): Promise<number> =>
+  ipcRenderer.invoke('scenes:save', sceneId, content),
+
+  deleteScene: (sceneId: string): Promise<boolean> =>
+  ipcRenderer.invoke('scenes:delete', sceneId),
 }
 
 if (process.contextIsolated) {

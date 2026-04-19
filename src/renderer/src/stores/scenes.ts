@@ -54,6 +54,18 @@ export async function reorderScenes(scenes: SceneMetadata[]): Promise<void> {
   }
 }
 
+export async function deleteScene(id: string): Promise<void> {
+  try {
+    await window.api.deleteScene(id)
+    scenesState.update(s => ({
+      ...s,
+      scenes: s.scenes.filter(scene => scene.id !== id)
+    }))
+  } catch (error) {
+    console.error('Failed to delete scene:', error)
+  }
+}
+
 /** Reset scenes state when project closes */
 export function resetScenes(): void {
   scenesState.set(initialState)

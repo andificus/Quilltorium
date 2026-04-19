@@ -340,6 +340,107 @@ ipcMain.handle('scenes:reorder', async (
   }
 })
 
+/** Read the Markdown content of a scene */
+ipcMain.handle('scenes:read', async (_event, sceneId: string): Promise<string> => {
+  if (!currentProjectPath) return ''
+
+  try {
+    const scenesDir = join(currentProjectPath, 'scenes')
+    const files = await adapter.listFiles(scenesDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as SceneMetadata
+        if (metadata.id === sceneId) {
+          const mdPath = file.replace('.json', '.md')
+          return await adapter.readFile(mdPath)
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return ''
+  } catch (error) {
+    console.error('Failed to read scene:', error)
+    return ''
+  }
+})
+
+/** Save the Markdown content of a scene and update its word count */
+ipcMain.handle('scenes:save', async (
+  _event,
+  sceneId: string,
+  content: string
+): Promise<number> => {
+  if (!currentProjectPath) return 0
+
+  try {
+    const scenesDir = join(currentProjectPath, 'scenes')
+    const files = await adapter.listFiles(scenesDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as SceneMetadata
+        if (metadata.id === sceneId) {
+          // Save markdown content
+          const mdPath = file.replace('.json', '.md')
+          await adapter.writeFile(mdPath, content)
+
+          // Update word count and timestamp
+          const wordCount = content.trim() === ''
+            ? 0
+            : content.trim().split(/\s+/).length
+          metadata.wordCount = wordCount
+          metadata.updatedAt = new Date().toISOString()
+          await adapter.writeFile(file, JSON.stringify(metadata, null, 2))
+
+          return wordCount
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return 0
+  } catch (error) {
+    console.error('Failed to save scene:', error)
+    return 0
+  }
+})
+
+/** Delete a scene and its sidecar files */
+ipcMain.handle('scenes:delete', async (_event, sceneId: string): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const scenesDir = join(currentProjectPath, 'scenes')
+    const files = await adapter.listFiles(scenesDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as SceneMetadata
+        if (metadata.id === sceneId) {
+          const mdPath = file.replace('.json', '.md')
+          await adapter.deleteFile(file)
+          await adapter.deleteFile(mdPath)
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to delete scene:', error)
+    return false
+  }
+})
+
 // Windows: quit the app when all windows are closed
 app.on('window-all-closed', () => {
   app.quit()

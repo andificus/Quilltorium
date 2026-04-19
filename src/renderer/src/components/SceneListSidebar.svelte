@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { scenesState, loadScenes, createScene, reorderScenes } from '../stores/scenes'
+  import { scenesState, loadScenes, createScene, reorderScenes, deleteScene } from '../stores/scenes'
   import { setActiveScene, appState } from '../stores/app'
   import type { SceneMetadata } from '../env'
 
@@ -10,6 +10,7 @@
 
   let isAddingScene = false
   let newSceneTitle = ''
+  let contextMenu: { x: number; y: number; scene: SceneMetadata } | null = null
 
   function handleAddScene(): void {
     isAddingScene = true
@@ -35,6 +36,14 @@
   function handleAddKeydown(e: KeyboardEvent): void {
     if (e.key === 'Enter') handleConfirmAdd()
     if (e.key === 'Escape') handleCancelAdd()
+  }
+
+  function handleContextMenu(e: MouseEvent, scene: SceneMetadata): void {
+    contextMenu = { x: e.clientX, y: e.clientY, scene }
+  }
+
+  function closeContextMenu(): void {
+    contextMenu = null
   }
 
   // Drag and drop
@@ -106,6 +115,7 @@
           class:drag-over={dragOverId === scene.id}
           draggable="true"
           on:click={() => setActiveScene(scene.id)}
+          on:contextmenu|preventDefault={(e) => handleContextMenu(e, scene)}
           on:dragstart={(e) => handleDragStart(e, scene)}
           on:dragover={(e) => handleDragOver(e, scene)}
           on:drop={(e) => handleDrop(e, scene)}
@@ -139,6 +149,30 @@
     {/if}
   </div>
 </div>
+
+{#if contextMenu}
+  <div class="context-backdrop" on:click={closeContextMenu}></div>
+  <div
+    class="context-menu"
+    style="left: {contextMenu.x}px; top: {contextMenu.y}px"
+  >
+    <button
+      class="context-item context-delete"
+      on:click={async () => {
+        const scene = contextMenu?.scene
+        contextMenu = null
+        if (scene) {
+          if ($appState.activeSceneId === scene.id) {
+            setActiveScene('')
+          }
+          await deleteScene(scene.id)
+        }
+      }}
+    >
+      Delete "{contextMenu.scene.title}"
+    </button>
+  </div>
+{/if}
 
 <style>
   .scene-sidebar {
@@ -303,4 +337,42 @@
   .btn-confirm:hover { background: var(--color-accent-subtle); }
   .btn-cancel { color: var(--color-text-muted); }
   .btn-cancel:hover { background: var(--color-surface-hover); }
+
+  .context-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+  }
+
+  .context-menu {
+    position: fixed;
+    z-index: 101;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 4px;
+    min-width: 180px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .context-item {
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    text-align: left;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--color-text);
+  }
+
+  .context-delete {
+    color: #e06c6c;
+  }
+
+  .context-delete:hover {
+    background: rgba(224, 108, 108, 0.1);
+  }
 </style>
