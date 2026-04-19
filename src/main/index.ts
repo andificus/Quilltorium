@@ -441,6 +441,46 @@ ipcMain.handle('scenes:delete', async (_event, sceneId: string): Promise<boolean
   }
 })
 
+/** Update a scene's metadata fields */
+ipcMain.handle('scenes:update-metadata', async (
+  _event,
+  sceneId: string,
+  updates: Partial<SceneMetadata>
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const scenesDir = join(currentProjectPath, 'scenes')
+    const files = await adapter.listFiles(scenesDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as SceneMetadata
+        if (metadata.id === sceneId) {
+          const updated = {
+            ...metadata,
+            ...updates,
+            id: metadata.id,
+            wordCount: metadata.wordCount,
+            createdAt: metadata.createdAt,
+            updatedAt: new Date().toISOString()
+          }
+          await adapter.writeFile(file, JSON.stringify(updated, null, 2))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to update scene metadata:', error)
+    return false
+  }
+})
+
 // Windows: quit the app when all windows are closed
 app.on('window-all-closed', () => {
   app.quit()

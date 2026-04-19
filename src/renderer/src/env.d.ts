@@ -14,6 +14,10 @@ declare global {
       readScene(sceneId: string): Promise<string>
       saveScene(sceneId: string, content: string): Promise<number>
       deleteScene(sceneId: string): Promise<boolean>
+      updateSceneMetadata(
+        sceneId: string,
+        updates: Partial<SceneMetadata>
+      ): Promise<boolean>
     }
   }
 }
