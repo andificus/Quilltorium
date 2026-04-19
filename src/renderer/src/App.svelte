@@ -6,6 +6,7 @@
   import WelcomeView from './views/WelcomeView.svelte'
   import { appState, closeProject } from './stores/app'
   import { resetScenes } from './stores/scenes'
+  import StatsView from './views/StatsView.svelte'
 
   function handleCloseProject(): void {
     resetScenes()
@@ -38,7 +39,9 @@
           <SceneListSidebar />
         {/if}
         <div class="main-editor">
-          {#if $appState.activeSceneId}
+          {#if $appState.activeSection === 'stats'}
+            <StatsView />
+          {:else if $appState.activeSceneId}
             {#key $appState.activeSceneId}
               <SceneEditor sceneId={$appState.activeSceneId} />
             {/key}
