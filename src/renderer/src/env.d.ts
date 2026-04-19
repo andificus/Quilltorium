@@ -1,7 +1,7 @@
 /// <reference types="svelte" />
 /// <reference types="vite/client" />
 
-import type { ProjectMetadata, SceneMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata } from '../../src-shared/types'
 
 declare global {
   interface Window {
@@ -19,8 +19,17 @@ declare global {
         updates: Partial<SceneMetadata>
       ): Promise<boolean>
       exportManuscript(): Promise<boolean>
+      listCharacters(): Promise<CharacterMetadata[]>
+      createCharacter(name: string): Promise<CharacterMetadata | null>
+      readCharacter(characterId: string): Promise<string>
+      saveCharacter(characterId: string, content: string): Promise<boolean>
+      deleteCharacter(characterId: string): Promise<boolean>
+      updateCharacterMetadata(
+        characterId: string,
+        updates: Partial<CharacterMetadata>
+      ): Promise<boolean>
     }
   }
 }
 
-export type { ProjectMetadata, SceneMetadata }
+export type { ProjectMetadata, SceneMetadata, CharacterMetadata }

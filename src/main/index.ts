@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { ElectronAdapter } from '../../src-shared/storage/ElectronAdapter'
-import type { ProjectMetadata, SceneMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata } from '../../src-shared/types'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx'
 
 
@@ -624,6 +624,216 @@ ipcMain.handle('manuscript:export', async (): Promise<boolean> => {
       message: 'Failed to export manuscript.',
       detail: String(error)
     })
+    return false
+  }
+})
+
+// ── Character Handlers ───────────────────────────────────────────────────────
+
+/** List all characters for the current project, sorted alphabetically */
+ipcMain.handle('characters:list', async (): Promise<CharacterMetadata[]> => {
+  if (!currentProjectPath) return []
+
+  try {
+    const charactersDir = join(currentProjectPath, 'characters')
+    const files = await adapter.listFiles(charactersDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    const characters: CharacterMetadata[] = []
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        characters.push(JSON.parse(raw) as CharacterMetadata)
+      } catch {
+        // Skip malformed files
+      }
+    }
+
+    return characters.sort((a, b) => a.name.localeCompare(b.name))
+  } catch (error) {
+    console.error('Failed to list characters:', error)
+    return []
+  }
+})
+
+/** Create a new character */
+ipcMain.handle('characters:create', async (
+  _event,
+  name: string
+): Promise<CharacterMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    const charactersDir = join(currentProjectPath, 'characters')
+
+    const baseSlug = slugify(name)
+    let slug = baseSlug
+    let counter = 1
+
+    while (await adapter.exists(join(charactersDir, `${slug}.json`))) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+    }
+
+    const now = new Date().toISOString()
+    const metadata: CharacterMetadata = {
+      id: crypto.randomUUID(),
+      slug,
+      name,
+      aliases: [],
+      tags: [],
+      firstAppearance: null,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(charactersDir, `${slug}.md`), `# ${name}\n\n`)
+    await adapter.writeFile(
+      join(charactersDir, `${slug}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to create character:', error)
+    return null
+  }
+})
+
+/** Read a character's Markdown content */
+ipcMain.handle('characters:read', async (
+  _event,
+  characterId: string
+): Promise<string> => {
+  if (!currentProjectPath) return ''
+
+  try {
+    const charactersDir = join(currentProjectPath, 'characters')
+    const files = await adapter.listFiles(charactersDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as CharacterMetadata
+        if (metadata.id === characterId) {
+          const mdPath = file.replace('.json', '.md')
+          return await adapter.readFile(mdPath)
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return ''
+  } catch (error) {
+    console.error('Failed to read character:', error)
+    return ''
+  }
+})
+
+/** Save a character's Markdown content */
+ipcMain.handle('characters:save', async (
+  _event,
+  characterId: string,
+  content: string
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const charactersDir = join(currentProjectPath, 'characters')
+    const files = await adapter.listFiles(charactersDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as CharacterMetadata
+        if (metadata.id === characterId) {
+          const mdPath = file.replace('.json', '.md')
+          await adapter.writeFile(mdPath, content)
+          metadata.updatedAt = new Date().toISOString()
+          await adapter.writeFile(file, JSON.stringify(metadata, null, 2))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to save character:', error)
+    return false
+  }
+})
+
+/** Delete a character */
+ipcMain.handle('characters:delete', async (
+  _event,
+  characterId: string
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const charactersDir = join(currentProjectPath, 'characters')
+    const files = await adapter.listFiles(charactersDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as CharacterMetadata
+        if (metadata.id === characterId) {
+          await adapter.deleteFile(file)
+          await adapter.deleteFile(file.replace('.json', '.md'))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to delete character:', error)
+    return false
+  }
+})
+
+/** Update a character's metadata */
+ipcMain.handle('characters:update-metadata', async (
+  _event,
+  characterId: string,
+  updates: Partial<CharacterMetadata>
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const charactersDir = join(currentProjectPath, 'characters')
+    const files = await adapter.listFiles(charactersDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as CharacterMetadata
+        if (metadata.id === characterId) {
+          const updated = {
+            ...metadata,
+            ...updates,
+            id: metadata.id,
+            slug: metadata.slug,
+            createdAt: metadata.createdAt,
+            updatedAt: new Date().toISOString()
+          }
+          await adapter.writeFile(file, JSON.stringify(updated, null, 2))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to update character metadata:', error)
     return false
   }
 })
