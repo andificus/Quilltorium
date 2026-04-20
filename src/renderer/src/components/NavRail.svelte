@@ -14,6 +14,7 @@
     { section: 'lore',       label: 'Lore',        icon: '📚' },
     { section: 'notes',      label: 'Notes',       icon: '✏️' },
     { section: 'plot',       label: 'Plot',        icon: '🎬' },
+    { section: 'timeline',   label: 'Timeline',    icon: '🕐' },
     { section: 'stats',      label: 'Stats',       icon: '📊' },
   ]
 </script>

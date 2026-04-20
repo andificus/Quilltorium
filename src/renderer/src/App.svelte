@@ -18,6 +18,7 @@
   import PlotBoardView from './views/PlotBoardView.svelte'
   import ProjectSettingsView from './views/ProjectSettingsView.svelte'
   import ExportModal from './components/ExportModal.svelte'
+  import TimelineView from './views/TimelineView.svelte'
 
   function handleCloseProject(): void {
     resetScenes()
@@ -92,7 +93,9 @@
           {#if $appState.activeSection === 'stats'}
             <StatsView />
           {:else if $appState.activeSection === 'plot'}
-            <PlotBoardView />  
+            <PlotBoardView /> 
+          {:else if $appState.activeSection === 'timeline'}
+            <TimelineView /> 
           {:else if $appState.activeSection === 'characters'}
             {#if $appState.activeCharacterId}
               {#key $appState.activeCharacterId}
@@ -119,7 +122,7 @@
           {:else}
             <div class="editor-placeholder">Select a scene to start writing</div>
           {:else if $appState.activeSection === 'settings'}
-            <ProjectSettingsView />  
+            <ProjectSettingsView />
           {/if}
         </div>
       </div>
