@@ -23,12 +23,15 @@
   import LoreEditor from './components/LoreEditor.svelte'
   import LoreMetadataPanel from './components/LoreMetadataPanel.svelte'
   import { resetLore } from './stores/lore'
+  import NotesView from './views/NotesView.svelte'
+  import { resetNotes } from './stores/notes'
 
   function handleCloseProject(): void {
     resetScenes()
     resetCharacters()
     resetLocations()
     resetLore()
+    resetNotes()
     closeProject()
   }
 
@@ -102,7 +105,9 @@
           {:else if $appState.activeSection === 'plot'}
             <PlotBoardView /> 
           {:else if $appState.activeSection === 'timeline'}
-            <TimelineView /> 
+            <TimelineView />
+          {:else if $appState.activeSection === 'notes'}
+            <NotesView />
           {:else if $appState.activeSection === 'characters'}
             {#if $appState.activeCharacterId}
               {#key $appState.activeCharacterId}
