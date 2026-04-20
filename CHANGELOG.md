@@ -6,6 +6,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.3.1 — 2026-04-20
+
+### Added
+- Check for Updates button in Settings panel
+- Pre-release updates toggle in Settings panel — persists across sessions
+
+### Fixed
+- Settings panel was showing scene editor when a scene was active
+- Timeline view was showing scene editor when a scene was active
+
+---
+
 ## v0.3.0 — 2026-04-20
 
 ### Added
@@ -18,7 +30,6 @@ This project follows [Semantic Versioning](https://semver.org/).
 - Wikilinks navigate to lore pages, characters, and locations
 - Notes inbox with quick capture and promote to scene/character/location/lore
 - Fix Node.js 24 in GitHub Actions workflow
-
 
 ---
 

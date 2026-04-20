@@ -1,7 +1,7 @@
 # DEV_NOTES.md — Developer Reference
 **Last Updated:** 2026-04-19
 **Current Phase:** Phase 4 — Import / Export
-**Current Version:** 0.3.0 (pre-release)
+**Current Version:** 0.3.1 (pre-release)
 
 > This file is the first thing to read when returning to this codebase after any break.
 > It is also the reference document for anyone contributing to the project.
