@@ -16,8 +16,8 @@
     .filter(s => s.status === 'final')
     .reduce((sum, s) => sum + s.wordCount, 0)
 
-  /** Target word count from project settings — hardcoded default for now */
-  const TARGET_WORD_COUNT = 80000
+  /** Target word count from project settings */
+  $: TARGET_WORD_COUNT = $appState.projectMetadata?.settings.targetWordCount ?? 80000
 
   /** Progress percentage toward target */
   $: progressPercent = Math.min((totalWords / TARGET_WORD_COUNT) * 100, 100)
@@ -53,7 +53,7 @@
       </div>
       <div class="progress-meta">
         <span>{progressPercent.toFixed(1)}% of {fmt(TARGET_WORD_COUNT)} word goal</span>
-        <span>{fmt(TARGET_WORD_COUNT - totalWords)} words remaining</span>
+        <span>{TARGET_WORD_COUNT > totalWords ? `${fmt(TARGET_WORD_COUNT - totalWords)} words remaining` : '🎉 Goal reached!'}</span>
       </div>
     </div>
 

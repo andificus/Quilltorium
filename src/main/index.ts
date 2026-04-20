@@ -1139,6 +1139,37 @@ ipcMain.handle('app:open-recent-project', async (
   }
 })
 
+/** Get the current project's metadata */
+ipcMain.handle('project:get-metadata', async (): Promise<ProjectMetadata | null> => {
+  if (!currentProjectPath) return null
+  try {
+    const raw = await adapter.readFile(join(currentProjectPath, 'project.json'))
+    return JSON.parse(raw) as ProjectMetadata
+  } catch (error) {
+    console.error('Failed to get project metadata:', error)
+    return null
+  }
+})
+
+/** Update the current project's settings */
+ipcMain.handle('project:update-settings', async (
+  _event,
+  updates: Partial<ProjectMetadata>
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+  try {
+    const projectJsonPath = join(currentProjectPath, 'project.json')
+    const raw = await adapter.readFile(projectJsonPath)
+    const metadata: ProjectMetadata = JSON.parse(raw)
+    const updated = { ...metadata, ...updates }
+    await adapter.writeFile(projectJsonPath, JSON.stringify(updated, null, 2))
+    return true
+  } catch (error) {
+    console.error('Failed to update project settings:', error)
+    return false
+  }
+})
+
 // Windows: quit the app when all windows are closed
 app.on('window-all-closed', () => {
   app.quit()

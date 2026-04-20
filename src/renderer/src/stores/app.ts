@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store'
+import type { ProjectMetadata } from '../env'
 
-export type AppSection = 'scenes' | 'characters' | 'locations' | 'lore' | 'notes' | 'plot' | 'stats'
+export type AppSection = 'scenes' | 'characters' | 'locations' | 'lore' | 'notes' | 'plot' | 'stats' | 'settings'
 
 interface AppState {
   activeSection: AppSection
@@ -9,6 +10,7 @@ interface AppState {
   activeSceneId: string | null
   activeCharacterId: string | null
   activeLocationId: string | null
+  projectMetadata: ProjectMetadata | null
 }
 
 const initialState: AppState = {
@@ -17,7 +19,8 @@ const initialState: AppState = {
   projectTitle: null,
   activeSceneId: null,
   activeCharacterId: null,
-  activeLocationId: null
+  activeLocationId: null,
+  projectMetadata: null
 }
 
 export const appState = writable<AppState>(initialState)
@@ -28,6 +31,10 @@ export function setActiveSection(section: AppSection): void {
 
 export function setProject(id: string, title: string): void {
   appState.update(state => ({ ...state, projectPath: id, projectTitle: title }))
+}
+
+export function setProjectMetadata(metadata: ProjectMetadata): void {
+  appState.update(state => ({ ...state, projectMetadata: metadata }))
 }
 
 export function setActiveScene(id: string): void {
@@ -41,6 +48,7 @@ export function closeProject(): void {
     projectTitle: null,
     activeSceneId: null,
     activeCharacterId: null,
-    activeLocationId: null
+    activeLocationId: null,
+    projectMetadata: null
   }))
 }

@@ -83,6 +83,12 @@ const api = {
 
   openRecentProject: (projectPath: string): Promise<ProjectMetadata | null> =>
     ipcRenderer.invoke('app:open-recent-project', projectPath),
+
+  getProjectMetadata: (): Promise<ProjectMetadata | null> =>
+    ipcRenderer.invoke('project:get-metadata'),
+
+  updateProjectSettings: (updates: Partial<ProjectMetadata>): Promise<boolean> =>
+    ipcRenderer.invoke('project:update-settings', updates),
 }
 
 if (process.contextIsolated) {

@@ -39,7 +39,13 @@
   </div>
 
   <div class="nav-footer">
-    <button class="nav-item" title="Settings">
+    <button
+      class="nav-item"
+      class:active={$appState.activeSection === 'settings'}
+      disabled={$appState.projectPath === null}
+      on:click={() => setActiveSection('settings')}
+      title="Settings"
+    >
       <span class="nav-icon">⚙</span>
       <span class="nav-label">Settings</span>
     </button>

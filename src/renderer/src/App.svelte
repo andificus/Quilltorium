@@ -16,6 +16,7 @@
   import { resetLocations } from './stores/locations'
   import LocationMetadataPanel from './components/LocationMetadataPanel.svelte'
   import PlotBoardView from './views/PlotBoardView.svelte'
+  import ProjectSettingsView from './views/ProjectSettingsView.svelte'
 
   function handleCloseProject(): void {
     resetScenes()
@@ -97,6 +98,8 @@
             <SceneMetadataPanel sceneId={$appState.activeSceneId} />
           {:else}
             <div class="editor-placeholder">Select a scene to start writing</div>
+          {:else if $appState.activeSection === 'settings'}
+            <ProjectSettingsView />  
           {/if}
         </div>
       </div>
