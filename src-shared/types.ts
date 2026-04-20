@@ -117,3 +117,37 @@ export interface ProjectMetadata {
     uiMode: UIMode
   }
 }
+
+/**
+ * Metadata for a lore/worldbuilding page.
+ * Stored as {slug}.json alongside {slug}.md in the /lore/ folder.
+ */
+export interface LoreMetadata {
+  /** UUID v4 */
+  id: string
+  /** URL-safe identifier derived from title */
+  slug: string
+  /** Display title */
+  title: string
+  /** Arbitrary tags */
+  tags: string[]
+  /** ISO 8601 timestamp */
+  createdAt: string
+  /** ISO 8601 timestamp */
+  updatedAt: string
+}
+
+/**
+ * Metadata for a quick-capture note.
+ * Stored as {id}.json alongside {id}.md in the /notes/ folder.
+ */
+export interface NoteMetadata {
+  /** UUID v4 */
+  id: string
+  /** First line of the note content, used as a preview title */
+  preview: string
+  /** ISO 8601 timestamp */
+  createdAt: string
+  /** ISO 8601 timestamp */
+  updatedAt: string
+}
