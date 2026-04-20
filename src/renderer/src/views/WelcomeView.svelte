@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { setProject } from '../stores/app'
+  import { setProject, setProjectMetadata } from '../stores/app'
   import { loadScenes } from '../stores/scenes'
   import { loadCharacters } from '../stores/characters'
   import { loadLocations } from '../stores/locations'
@@ -16,6 +16,7 @@
   async function openProject(metadata: Awaited<ReturnType<typeof window.api.openProject>>): Promise<void> {
     if (metadata) {
       setProject(metadata.id, metadata.title)
+      setProjectMetadata(metadata)
       await Promise.all([loadScenes(), loadCharacters(), loadLocations()])
       recentProjects = await window.api.getRecentProjects()
     }

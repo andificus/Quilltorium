@@ -39,6 +39,8 @@ declare global {
       ): Promise<boolean>
       getRecentProjects(): Promise<Array<{ path: string; title: string; lastOpened: string }>>
       openRecentProject(projectPath: string): Promise<ProjectMetadata | null>
+      getProjectMetadata(): Promise<ProjectMetadata | null>
+      updateProjectSettings(updates: Partial<ProjectMetadata>): Promise<boolean>
     }
   }
 }
