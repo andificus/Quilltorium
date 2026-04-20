@@ -13,6 +13,7 @@
     { section: 'locations',  label: 'Locations',   icon: '🗺️' },
     { section: 'lore',       label: 'Lore',        icon: '📚' },
     { section: 'notes',      label: 'Notes',       icon: '✏️' },
+    { section: 'plot',       label: 'Plot',        icon: '🎬' },
     { section: 'stats',      label: 'Stats',       icon: '📊' },
   ]
 </script>

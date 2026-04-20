@@ -15,6 +15,7 @@
   import LocationEditor from './components/LocationEditor.svelte'
   import { resetLocations } from './stores/locations'
   import LocationMetadataPanel from './components/LocationMetadataPanel.svelte'
+  import PlotBoardView from './views/PlotBoardView.svelte'
 
   function handleCloseProject(): void {
     resetScenes()
@@ -69,6 +70,8 @@
         <div class="main-editor">
           {#if $appState.activeSection === 'stats'}
             <StatsView />
+          {:else if $appState.activeSection === 'plot'}
+            <PlotBoardView />  
           {:else if $appState.activeSection === 'characters'}
             {#if $appState.activeCharacterId}
               {#key $appState.activeCharacterId}

@@ -1,5 +1,8 @@
 <script lang="ts">
   import { setProject } from '../stores/app'
+  import { loadScenes } from '../stores/scenes'
+  import { loadCharacters } from '../stores/characters'
+  import { loadLocations } from '../stores/locations'
   import NewProjectModal from '../components/NewProjectModal.svelte'
 
   let showNewProjectModal = false
@@ -16,6 +19,7 @@
     const metadata = await window.api.createProject(title, author)
     if (metadata) {
       setProject(metadata.id, metadata.title)
+      await Promise.all([loadScenes(), loadCharacters(), loadLocations()])
     }
   }
 
@@ -27,6 +31,7 @@
     const metadata = await window.api.openProject()
     if (metadata) {
       setProject(metadata.id, metadata.title)
+      await Promise.all([loadScenes(), loadCharacters(), loadLocations()])
     }
   }
 </script>

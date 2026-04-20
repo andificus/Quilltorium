@@ -1,10 +1,15 @@
 <script lang="ts">
   import { scenesState } from '../stores/scenes'
+  import { charactersState } from '../stores/characters'
+  import { locationsState } from '../stores/locations'
   import type { SceneMetadata } from '../env'
 
   export let sceneId: string
 
-  /** Save a metadata update to disk and sync the store */
+  $: scene = $scenesState.scenes.find(s => s.id === sceneId) ?? null
+  $: characters = $charactersState.characters
+  $: locations = $locationsState.locations
+
   async function updateField(
     field: keyof SceneMetadata,
     value: SceneMetadata[typeof field]
@@ -18,10 +23,17 @@
     }))
   }
 
-  /** Get the current scene from the store */
-  $: scene = $scenesState.scenes.find(s => s.id === sceneId) ?? null
+  /** Toggle a character slug in the scene's characters array */
+  async function toggleCharacter(slug: string): Promise<void> {
+    if (!scene) return
+    const current = scene.characters
+    const updated = current.includes(slug)
+      ? current.filter(c => c !== slug)
+      : [...current, slug]
+    await updateField('characters', updated)
+  }
 
-  /** Tag input state */
+  /** Tag input */
   let newTag = ''
 
   function handleTagKeydown(e: KeyboardEvent): void {
@@ -81,16 +93,66 @@
         </div>
       </div>
 
-      <!-- POV -->
+      <!-- POV Character — dropdown from characters store -->
       <div class="field">
         <label for="scene-pov">POV Character</label>
-        <input
-          id="scene-pov"
-          type="text"
-          placeholder="e.g. Kaelen"
-          value={scene.pov ?? ''}
-          on:change={(e) => updateField('pov', e.currentTarget.value || null)}
-        />
+        {#if characters.length === 0}
+          <p class="empty-hint">Add characters first</p>
+        {:else}
+          <select
+            id="scene-pov"
+            value={scene.pov ?? ''}
+            on:change={(e) => updateField('pov', e.currentTarget.value || null)}
+          >
+            <option value="">— None —</option>
+            {#each characters as character}
+              <option value={character.slug}>{character.name}</option>
+            {/each}
+          </select>
+        {/if}
+      </div>
+
+      <!-- Characters in scene — multi-select -->
+      <div class="field">
+        <label>Characters</label>
+        {#if characters.length === 0}
+          <p class="empty-hint">Add characters first</p>
+        {:else}
+          <div class="character-checkboxes">
+            {#each characters as character}
+              <label class="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={scene.characters.includes(character.slug)}
+                  on:change={() => toggleCharacter(character.slug)}
+                />
+                <span class="checkbox-avatar">
+                  {character.name.charAt(0).toUpperCase()}
+                </span>
+                <span class="checkbox-name">{character.name}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Location — dropdown from locations store -->
+      <div class="field">
+        <label for="scene-location">Location</label>
+        {#if locations.length === 0}
+          <p class="empty-hint">Add locations first</p>
+        {:else}
+          <select
+            id="scene-location"
+            value={scene.location ?? ''}
+            on:change={(e) => updateField('location', e.currentTarget.value || null)}
+          >
+            <option value="">— None —</option>
+            {#each locations as location}
+              <option value={location.slug}>{location.name}</option>
+            {/each}
+          </select>
+        {/if}
       </div>
 
       <!-- Act -->
@@ -204,7 +266,7 @@
     color: var(--color-text-muted);
   }
 
-  input, select {
+  input[type="text"], select {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 4px;
@@ -217,19 +279,24 @@
     width: 100%;
   }
 
-  input:focus, select:focus {
-    border-color: var(--color-accent);
-  }
+  input[type="text"]:focus,
+  select:focus { border-color: var(--color-accent); }
 
-  select {
-    cursor: pointer;
-  }
+  select { cursor: pointer; }
 
   .readonly-value {
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--color-text-muted);
     padding: 6px 0;
+  }
+
+  .empty-hint {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: var(--color-text-faint);
+    font-style: italic;
+    margin: 0;
   }
 
   .status-buttons {
@@ -274,6 +341,63 @@
     color: var(--color-bg);
   }
 
+  .character-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 4px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--color-text);
+    transition: background 0.1s;
+  }
+
+  .checkbox-row:hover { background: var(--color-surface-hover); }
+
+  .checkbox-row input[type="checkbox"] {
+    width: auto;
+    padding: 0;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+  }
+
+  .checkbox-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-accent-subtle);
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    font-family: var(--font-ui);
+    font-size: 9px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .checkbox-name {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    color: var(--color-text);
+  }
+
   .tags-container {
     display: flex;
     flex-wrap: wrap;
@@ -286,9 +410,7 @@
     align-items: center;
   }
 
-  .tags-container:focus-within {
-    border-color: var(--color-accent);
-  }
+  .tags-container:focus-within { border-color: var(--color-accent); }
 
   .tag {
     display: flex;

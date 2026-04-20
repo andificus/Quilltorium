@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store'
 
-export type AppSection = 'scenes' | 'characters' | 'locations' | 'lore' | 'notes' | 'stats'
+export type AppSection = 'scenes' | 'characters' | 'locations' | 'lore' | 'notes' | 'plot' | 'stats'
 
 interface AppState {
   activeSection: AppSection
