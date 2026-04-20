@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata, NoteMetadata } from '../../src-shared/types'
 
 const api = {
   openProject: (): Promise<ProjectMetadata | null> =>
@@ -115,6 +115,33 @@ const api = {
 
   getLoreBacklinks: (targetSlug: string): Promise<LoreMetadata[]> =>
     ipcRenderer.invoke('lore:get-backlinks', targetSlug),
+
+  listNotes: (): Promise<NoteMetadata[]> =>
+    ipcRenderer.invoke('notes:list'),
+
+  createNote: (): Promise<NoteMetadata | null> =>
+    ipcRenderer.invoke('notes:create'),
+
+  readNote: (noteId: string): Promise<string> =>
+    ipcRenderer.invoke('notes:read', noteId),
+
+  saveNote: (noteId: string, content: string): Promise<boolean> =>
+    ipcRenderer.invoke('notes:save', noteId, content),
+
+  deleteNote: (noteId: string): Promise<boolean> =>
+    ipcRenderer.invoke('notes:delete', noteId),
+
+  promoteToScene: (noteId: string, title: string): Promise<SceneMetadata | null> =>
+    ipcRenderer.invoke('notes:promote-to-scene', noteId, title),
+
+  promoteToCharacter: (noteId: string, name: string): Promise<CharacterMetadata | null> =>
+    ipcRenderer.invoke('notes:promote-to-character', noteId, name),
+
+  promoteToLocation: (noteId: string, name: string): Promise<LocationMetadata | null> =>
+    ipcRenderer.invoke('notes:promote-to-location', noteId, name),
+
+  promoteToLore: (noteId: string, title: string): Promise<LoreMetadata | null> =>
+    ipcRenderer.invoke('notes:promote-to-lore', noteId, title),
 }
 
 if (process.contextIsolated) {

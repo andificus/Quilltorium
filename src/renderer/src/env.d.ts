@@ -1,7 +1,7 @@
 /// <reference types="svelte" />
 /// <reference types="vite/client" />
 
-import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata, NoteMetadata } from '../../src-shared/types'
 
 declare global {
   interface Window {
@@ -51,8 +51,17 @@ declare global {
       deleteLore(loreId: string): Promise<boolean>
       updateLoreMetadata(loreId: string, updates: Partial<LoreMetadata>): Promise<boolean>
       getLoreBacklinks(targetSlug: string): Promise<LoreMetadata[]>
+      listNotes(): Promise<NoteMetadata[]>
+      createNote(): Promise<NoteMetadata | null>
+      readNote(noteId: string): Promise<string>
+      saveNote(noteId: string, content: string): Promise<boolean>
+      deleteNote(noteId: string): Promise<boolean>
+      promoteToScene(noteId: string, title: string): Promise<SceneMetadata | null>
+      promoteToCharacter(noteId: string, name: string): Promise<CharacterMetadata | null>
+      promoteToLocation(noteId: string, name: string): Promise<LocationMetadata | null>
+      promoteToLore(noteId: string, title: string): Promise<LoreMetadata | null>
     }
   }
 }
 
-export type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata }
+export type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata, NoteMetadata }

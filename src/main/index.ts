@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { ElectronAdapter } from '../../src-shared/storage/ElectronAdapter'
-import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata, NoteMetadata } from '../../src-shared/types'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx'
 
 
@@ -1400,6 +1400,339 @@ ipcMain.handle('lore:get-backlinks', async (
   } catch (error) {
     console.error('Failed to get backlinks:', error)
     return []
+  }
+})
+
+// ── Notes Handlers ────────────────────────────────────────────────────────────
+
+/** List all notes sorted by most recently updated */
+ipcMain.handle('notes:list', async (): Promise<NoteMetadata[]> => {
+  if (!currentProjectPath) return []
+
+  try {
+    const notesDir = join(currentProjectPath, 'notes')
+    const files = await adapter.listFiles(notesDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    const notes: NoteMetadata[] = []
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        notes.push(JSON.parse(raw) as NoteMetadata)
+      } catch {
+        // Skip malformed files
+      }
+    }
+
+    return notes.sort((a, b) =>
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    )
+  } catch (error) {
+    console.error('Failed to list notes:', error)
+    return []
+  }
+})
+
+/** Create a new note */
+ipcMain.handle('notes:create', async (): Promise<NoteMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    const notesDir = join(currentProjectPath, 'notes')
+    const id = crypto.randomUUID()
+    const now = new Date().toISOString()
+
+    const metadata: NoteMetadata = {
+      id,
+      preview: 'New note',
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(notesDir, `${id}.md`), '')
+    await adapter.writeFile(
+      join(notesDir, `${id}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to create note:', error)
+    return null
+  }
+})
+
+/** Read a note's content */
+ipcMain.handle('notes:read', async (
+  _event,
+  noteId: string
+): Promise<string> => {
+  if (!currentProjectPath) return ''
+
+  try {
+    const mdPath = join(currentProjectPath, 'notes', `${noteId}.md`)
+    return await adapter.readFile(mdPath)
+  } catch (error) {
+    console.error('Failed to read note:', error)
+    return ''
+  }
+})
+
+/** Save a note's content and update its preview */
+ipcMain.handle('notes:save', async (
+  _event,
+  noteId: string,
+  content: string
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const notesDir = join(currentProjectPath, 'notes')
+    const mdPath = join(notesDir, `${noteId}.md`)
+    const jsonPath = join(notesDir, `${noteId}.json`)
+
+    await adapter.writeFile(mdPath, content)
+
+    const raw = await adapter.readFile(jsonPath)
+    const metadata: NoteMetadata = JSON.parse(raw)
+
+    // Update preview from first non-empty line
+    const firstLine = content.split('\n').find(l => l.trim() !== '') ?? 'Empty note'
+    metadata.preview = firstLine.replace(/^#+\s+/, '').slice(0, 60)
+    metadata.updatedAt = new Date().toISOString()
+
+    await adapter.writeFile(jsonPath, JSON.stringify(metadata, null, 2))
+    return true
+  } catch (error) {
+    console.error('Failed to save note:', error)
+    return false
+  }
+})
+
+/** Delete a note */
+ipcMain.handle('notes:delete', async (
+  _event,
+  noteId: string
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const notesDir = join(currentProjectPath, 'notes')
+    await adapter.deleteFile(join(notesDir, `${noteId}.md`))
+    await adapter.deleteFile(join(notesDir, `${noteId}.json`))
+    return true
+  } catch (error) {
+    console.error('Failed to delete note:', error)
+    return false
+  }
+})
+
+/** Promote a note to a scene */
+ipcMain.handle('notes:promote-to-scene', async (
+  _event,
+  noteId: string,
+  title: string
+): Promise<SceneMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    // Read note content
+    const content = await adapter.readFile(
+      join(currentProjectPath, 'notes', `${noteId}.md`)
+    )
+
+    // Create scene with note content
+    const scenesDir = join(currentProjectPath, 'scenes')
+    const existingFiles = await adapter.listFiles(scenesDir)
+    const existingCount = existingFiles.filter(f => f.endsWith('.json')).length
+
+    const baseSlug = slugify(title)
+    let slug = baseSlug
+    let counter = 1
+    while (await adapter.exists(join(scenesDir, `${slug}.json`))) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+    }
+
+    const now = new Date().toISOString()
+    const metadata: SceneMetadata = {
+      id: crypto.randomUUID(),
+      title,
+      order: existingCount + 1,
+      act: 1,
+      chapter: null,
+      status: 'draft',
+      pov: null,
+      characters: [],
+      location: null,
+      inWorldDate: null,
+      tags: [],
+      wordCount: content.trim() === '' ? 0 : content.trim().split(/\s+/).length,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(scenesDir, `${slug}.md`), content)
+    await adapter.writeFile(
+      join(scenesDir, `${slug}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    // Delete the note
+    await adapter.deleteFile(join(currentProjectPath, 'notes', `${noteId}.md`))
+    await adapter.deleteFile(join(currentProjectPath, 'notes', `${noteId}.json`))
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to promote note to scene:', error)
+    return null
+  }
+})
+
+/** Promote a note to a character */
+ipcMain.handle('notes:promote-to-character', async (
+  _event,
+  noteId: string,
+  name: string
+): Promise<CharacterMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    const content = await adapter.readFile(
+      join(currentProjectPath, 'notes', `${noteId}.md`)
+    )
+
+    const charactersDir = join(currentProjectPath, 'characters')
+    const baseSlug = slugify(name)
+    let slug = baseSlug
+    let counter = 1
+    while (await adapter.exists(join(charactersDir, `${slug}.json`))) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+    }
+
+    const now = new Date().toISOString()
+    const metadata: CharacterMetadata = {
+      id: crypto.randomUUID(),
+      slug,
+      name,
+      aliases: [],
+      tags: [],
+      firstAppearance: null,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(charactersDir, `${slug}.md`), content || `# ${name}\n\n`)
+    await adapter.writeFile(
+      join(charactersDir, `${slug}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    await adapter.deleteFile(join(currentProjectPath, 'notes', `${noteId}.md`))
+    await adapter.deleteFile(join(currentProjectPath, 'notes', `${noteId}.json`))
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to promote note to character:', error)
+    return null
+  }
+})
+
+/** Promote a note to a location */
+ipcMain.handle('notes:promote-to-location', async (
+  _event,
+  noteId: string,
+  name: string
+): Promise<LocationMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    const content = await adapter.readFile(
+      join(currentProjectPath, 'notes', `${noteId}.md`)
+    )
+
+    const locationsDir = join(currentProjectPath, 'locations')
+    const baseSlug = slugify(name)
+    let slug = baseSlug
+    let counter = 1
+    while (await adapter.exists(join(locationsDir, `${slug}.json`))) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+    }
+
+    const now = new Date().toISOString()
+    const metadata: LocationMetadata = {
+      id: crypto.randomUUID(),
+      slug,
+      name,
+      tags: [],
+      mapImage: null,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(locationsDir, `${slug}.md`), content || `# ${name}\n\n`)
+    await adapter.writeFile(
+      join(locationsDir, `${slug}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    await adapter.deleteFile(join(currentProjectPath, 'notes', `${noteId}.md`))
+    await adapter.deleteFile(join(currentProjectPath, 'notes', `${noteId}.json`))
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to promote note to location:', error)
+    return null
+  }
+})
+
+/** Promote a note to a lore page */
+ipcMain.handle('notes:promote-to-lore', async (
+  _event,
+  noteId: string,
+  title: string
+): Promise<LoreMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    const content = await adapter.readFile(
+      join(currentProjectPath, 'notes', `${noteId}.md`)
+    )
+
+    const loreDir = join(currentProjectPath, 'lore')
+    const baseSlug = slugify(title)
+    let slug = baseSlug
+    let counter = 1
+    while (await adapter.exists(join(loreDir, `${slug}.json`))) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+    }
+
+    const now = new Date().toISOString()
+    const metadata: LoreMetadata = {
+      id: crypto.randomUUID(),
+      slug,
+      title,
+      tags: [],
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(loreDir, `${slug}.md`), content || `# ${title}\n\n`)
+    await adapter.writeFile(
+      join(loreDir, `${slug}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    await adapter.deleteFile(join(currentProjectPath, 'notes', `${noteId}.md`))
+    await adapter.deleteFile(join(currentProjectPath, 'notes', `${noteId}.json`))
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to promote note to lore:', error)
+    return null
   }
 })
 
