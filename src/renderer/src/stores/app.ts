@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store'
 import type { ProjectMetadata } from '../env'
 
-export type AppSection = 'scenes' | 'characters' | 'locations' | 'lore' | 'notes' | 'plot' | 'stats' | 'settings'
+export type AppSection = 'scenes' | 'characters' | 'locations' | 'lore' | 'notes' | 'plot' | 'timeline' | 'stats' | 'settings'
 
 interface AppState {
   activeSection: AppSection
