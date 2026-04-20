@@ -76,7 +76,13 @@ const api = {
     locationId: string,
     updates: Partial<LocationMetadata>
   ): Promise<boolean> =>
-    ipcRenderer.invoke('locations:update-metadata', locationId, updates)  
+    ipcRenderer.invoke('locations:update-metadata', locationId, updates),
+    
+  getRecentProjects: (): Promise<Array<{ path: string; title: string; lastOpened: string }>> =>
+    ipcRenderer.invoke('app:get-recent-projects'),
+
+  openRecentProject: (projectPath: string): Promise<ProjectMetadata | null> =>
+    ipcRenderer.invoke('app:open-recent-project', projectPath),
 }
 
 if (process.contextIsolated) {
