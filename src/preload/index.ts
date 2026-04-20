@@ -33,11 +33,14 @@ const api = {
   ): Promise<boolean> =>
     ipcRenderer.invoke('scenes:update-metadata', sceneId, updates),
 
-  exportManuscript: (): Promise<boolean> =>
-    ipcRenderer.invoke('manuscript:export'),
+  exportManuscript: (options: {
+    includeStatuses: string[]
+    includeTitles: boolean
+  }): Promise<boolean> =>
+    ipcRenderer.invoke('manuscript:export', options),
 
   listCharacters: (): Promise<CharacterMetadata[]> =>
-  ipcRenderer.invoke('characters:list'),
+    ipcRenderer.invoke('characters:list'),
 
   createCharacter: (name: string): Promise<CharacterMetadata | null> =>
     ipcRenderer.invoke('characters:create', name),

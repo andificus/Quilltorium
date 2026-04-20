@@ -17,6 +17,7 @@
   import LocationMetadataPanel from './components/LocationMetadataPanel.svelte'
   import PlotBoardView from './views/PlotBoardView.svelte'
   import ProjectSettingsView from './views/ProjectSettingsView.svelte'
+  import ExportModal from './components/ExportModal.svelte'
 
   function handleCloseProject(): void {
     resetScenes()
@@ -25,11 +26,30 @@
     closeProject()
   }
 
-  async function handleExport(): Promise<void> {
-    await window.api.exportManuscript()
+  let showExportModal = false
+
+  function handleExport(): void {
+    showExportModal = true
+  }
+
+  async function handleExportConfirm(
+    e: CustomEvent<{ includeStatuses: string[]; includeTitles: boolean }>
+  ): Promise<void> {
+    showExportModal = false
+    await window.api.exportManuscript(e.detail)
+  }
+
+  function handleExportCancel(): void {
+    showExportModal = false
   }
 </script>
 
+{#if showExportModal}
+  <ExportModal
+    on:confirm={handleExportConfirm}
+    on:cancel={handleExportCancel}
+  />
+{/if}
 <div class="app-shell">
   <!-- Title bar -->
   <div class="title-bar">
