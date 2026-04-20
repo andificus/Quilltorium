@@ -6,6 +6,24 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.2.0 — 2026-04-19
+
+### Added
+- Character section with list sidebar, avatar initials, add/delete, and Markdown editor
+- Character metadata panel with name, aliases, tags, and scene appearance tracking
+- Location section with list sidebar, add/delete, and Markdown editor
+- Location metadata panel with name, tags, and scene appearance tracking
+- Plot board view showing scenes grouped by act columns
+- Mouse-drag to move scenes between acts on the plot board
+- Hover buttons on plot board cards as a fallback for moving between acts
+- Scene metadata panel now has character multi-select dropdown linked to real character data
+- Scene metadata panel now has location dropdown linked to real location data
+- POV character field is now a dropdown from the characters list
+- Characters and locations load automatically when a project is opened
+- Plot section added to navigation rail
+
+---
+
 ## v0.1.0 — 2026-04-18
 
 ### Added
