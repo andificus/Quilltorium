@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata } from '../../src-shared/types'
 
 const api = {
   openProject: (): Promise<ProjectMetadata | null> =>
@@ -92,6 +92,29 @@ const api = {
 
   updateProjectSettings: (updates: Partial<ProjectMetadata>): Promise<boolean> =>
     ipcRenderer.invoke('project:update-settings', updates),
+  listLore: (): Promise<LoreMetadata[]> =>
+    ipcRenderer.invoke('lore:list'),
+
+  createLore: (title: string): Promise<LoreMetadata | null> =>
+    ipcRenderer.invoke('lore:create', title),
+
+  readLore: (loreId: string): Promise<string> =>
+    ipcRenderer.invoke('lore:read', loreId),
+
+  saveLore: (loreId: string, content: string): Promise<boolean> =>
+    ipcRenderer.invoke('lore:save', loreId, content),
+
+  deleteLore: (loreId: string): Promise<boolean> =>
+    ipcRenderer.invoke('lore:delete', loreId),
+
+  updateLoreMetadata: (
+    loreId: string,
+    updates: Partial<LoreMetadata>
+  ): Promise<boolean> =>
+    ipcRenderer.invoke('lore:update-metadata', loreId, updates),
+
+  getLoreBacklinks: (targetSlug: string): Promise<LoreMetadata[]> =>
+    ipcRenderer.invoke('lore:get-backlinks', targetSlug),
 }
 
 if (process.contextIsolated) {

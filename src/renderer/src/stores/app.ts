@@ -10,6 +10,7 @@ interface AppState {
   activeSceneId: string | null
   activeCharacterId: string | null
   activeLocationId: string | null
+  activeLoreId: string | null
   projectMetadata: ProjectMetadata | null
 }
 
@@ -20,6 +21,7 @@ const initialState: AppState = {
   activeSceneId: null,
   activeCharacterId: null,
   activeLocationId: null,
+  activeLoreId: null,
   projectMetadata: null
 }
 
@@ -49,6 +51,7 @@ export function closeProject(): void {
     activeSceneId: null,
     activeCharacterId: null,
     activeLocationId: null,
+    activeLoreId: null,
     projectMetadata: null
   }))
 }

@@ -19,11 +19,16 @@
   import ProjectSettingsView from './views/ProjectSettingsView.svelte'
   import ExportModal from './components/ExportModal.svelte'
   import TimelineView from './views/TimelineView.svelte'
+  import LoreListSidebar from './components/LoreListSidebar.svelte'
+  import LoreEditor from './components/LoreEditor.svelte'
+  import LoreMetadataPanel from './components/LoreMetadataPanel.svelte'
+  import { resetLore } from './stores/lore'
 
   function handleCloseProject(): void {
     resetScenes()
     resetCharacters()
     resetLocations()
+    resetLore()
     closeProject()
   }
 
@@ -86,7 +91,9 @@
         {:else if $appState.activeSection === 'characters'}
           <CharacterListSidebar />
         {:else if $appState.activeSection === 'locations'}
-          <LocationListSidebar />  
+          <LocationListSidebar />
+        {:else if $appState.activeSection === 'lore'}
+          <LoreListSidebar />  
         {/if}
 
         <div class="main-editor">
@@ -114,6 +121,15 @@
             {:else}
               <div class="editor-placeholder">Select a location to view its page</div>
               {/if}
+          {:else if $appState.activeSection === 'lore'}
+            {#if $appState.activeLoreId}
+              {#key $appState.activeLoreId}
+                <LoreEditor loreId={$appState.activeLoreId} />
+              {/key}
+              <LoreMetadataPanel loreId={$appState.activeLoreId} />
+            {:else}
+              <div class="editor-placeholder">Select a lore page to start writing</div>
+            {/if}  
           {:else if $appState.activeSceneId}
             {#key $appState.activeSceneId}
               <SceneEditor sceneId={$appState.activeSceneId} />

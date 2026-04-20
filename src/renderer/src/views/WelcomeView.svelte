@@ -5,6 +5,7 @@
   import { loadCharacters } from '../stores/characters'
   import { loadLocations } from '../stores/locations'
   import NewProjectModal from '../components/NewProjectModal.svelte'
+  import { loadLore } from '../stores/lore'
 
   let showNewProjectModal = false
   let recentProjects: Array<{ path: string; title: string; lastOpened: string }> = []
@@ -17,7 +18,7 @@
     if (metadata) {
       setProject(metadata.id, metadata.title)
       setProjectMetadata(metadata)
-      await Promise.all([loadScenes(), loadCharacters(), loadLocations()])
+      await Promise.all([loadScenes(), loadCharacters(), loadLocations(), loadLore()])
       recentProjects = await window.api.getRecentProjects()
     }
   }
