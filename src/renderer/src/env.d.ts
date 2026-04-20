@@ -18,7 +18,10 @@ declare global {
         sceneId: string,
         updates: Partial<SceneMetadata>
       ): Promise<boolean>
-      exportManuscript(): Promise<boolean>
+      exportManuscript(options: {
+        includeStatuses: string[]
+        includeTitles: boolean
+      }): Promise<boolean>
       listCharacters(): Promise<CharacterMetadata[]>
       createCharacter(name: string): Promise<CharacterMetadata | null>
       readCharacter(characterId: string): Promise<string>

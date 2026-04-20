@@ -484,151 +484,142 @@ ipcMain.handle('scenes:update-metadata', async (
   }
 })
 
-/** Export all scenes as a compiled manuscript .docx file */
-ipcMain.handle('manuscript:export', async (): Promise<boolean> => {
-  if (!currentProjectPath) return false
+  /** Export all scenes as a compiled manuscript .docx file */
+  ipcMain.handle('manuscript:export', async (
+    _event,
+    options: { includeStatuses: string[]; includeTitles: boolean }
+  ): Promise<boolean> => {
+    if (!currentProjectPath) return false
 
-  try {
-    // Get all scenes sorted by order
-    const scenesDir = join(currentProjectPath, 'scenes')
-    const files = await adapter.listFiles(scenesDir)
-    const jsonFiles = files.filter(f => f.endsWith('.json'))
+    try {
+      const scenesDir = join(currentProjectPath, 'scenes')
+      const files = await adapter.listFiles(scenesDir)
+      const jsonFiles = files.filter(f => f.endsWith('.json'))
 
-    const scenes: Array<{ metadata: SceneMetadata; content: string }> = []
+      const scenes: Array<{ metadata: SceneMetadata; content: string }> = []
 
-    for (const file of jsonFiles) {
-      try {
-        const raw = await adapter.readFile(file)
-        const metadata = JSON.parse(raw) as SceneMetadata
-        const mdPath = file.replace('.json', '.md')
-        const content = await adapter.readFile(mdPath)
-        scenes.push({ metadata, content })
-      } catch {
-        // Skip malformed files
+      for (const file of jsonFiles) {
+        try {
+          const raw = await adapter.readFile(file)
+          const metadata = JSON.parse(raw) as SceneMetadata
+          // Filter by status
+          if (!options.includeStatuses.includes(metadata.status)) continue
+          const mdPath = file.replace('.json', '.md')
+          const content = await adapter.readFile(mdPath)
+          scenes.push({ metadata, content })
+        } catch {
+          // Skip malformed files
+        }
       }
-    }
 
-    scenes.sort((a, b) => a.metadata.order - b.metadata.order)
+      scenes.sort((a, b) => a.metadata.order - b.metadata.order)
 
-    if (scenes.length === 0) {
+      if (scenes.length === 0) {
+        await dialog.showMessageBox({
+          type: 'info',
+          title: 'No Scenes to Export',
+          message: 'No scenes match the selected filters.',
+          detail: 'Try including more status types in the export options.'
+        })
+        return false
+      }
+
+      const result = await dialog.showSaveDialog({
+        title: 'Export Manuscript',
+        defaultPath: 'manuscript.docx',
+        filters: [{ name: 'Word Document', extensions: ['docx'] }]
+      })
+
+      if (result.canceled || !result.filePath) return false
+
+      const children: Paragraph[] = []
+
+      for (const { metadata, content } of scenes) {
+        if (options.includeTitles) {
+          children.push(
+            new Paragraph({
+              text: metadata.title,
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 480, after: 240 }
+            })
+          )
+        }
+
+        const paragraphs = content.split(/\n\n+/).filter(p => p.trim() !== '')
+
+        for (const para of paragraphs) {
+          const text = para
+            .replace(/^#{1,6}\s+/, '')
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/\n/g, ' ')
+            .trim()
+
+          if (text === '') continue
+
+          children.push(
+            new Paragraph({
+              children: [new TextRun({ text, size: 24 })],
+              spacing: { before: 0, after: 240 },
+              alignment: AlignmentType.LEFT,
+              indent: { firstLine: 720 }
+            })
+          )
+        }
+      }
+
+      const projectRaw = await adapter.readFile(join(currentProjectPath, 'project.json'))
+      const project = JSON.parse(projectRaw)
+
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              size: { width: 12240, height: 15840 },
+              margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+            }
+          },
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: project.title, size: 48, bold: true })],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 2880, after: 480 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: project.author, size: 28 })],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 0, after: 0 }
+            }),
+            ...children
+          ]
+        }]
+      })
+
+      const buffer = await Packer.toBuffer(doc)
+      const { writeFileSync } = await import('fs')
+      writeFileSync(result.filePath, buffer)
+
       await dialog.showMessageBox({
         type: 'info',
-        title: 'No Scenes',
-        message: 'There are no scenes to export.'
+        title: 'Export Complete',
+        message: `Manuscript exported successfully.`,
+        detail: `${scenes.length} scenes saved to: ${result.filePath}`
+      })
+
+      return true
+    } catch (error) {
+      console.error('Failed to export manuscript:', error)
+      await dialog.showMessageBox({
+        type: 'error',
+        title: 'Export Failed',
+        message: 'Failed to export manuscript.',
+        detail: String(error)
       })
       return false
     }
+  })
 
-    // Ask where to save
-    const result = await dialog.showSaveDialog({
-      title: 'Export Manuscript',
-      defaultPath: `${scenes[0].metadata.title || 'manuscript'}.docx`,
-      filters: [{ name: 'Word Document', extensions: ['docx'] }]
-    })
 
-    if (result.canceled || !result.filePath) return false
-
-    // Build document paragraphs
-    const children: Paragraph[] = []
-
-    for (const { metadata, content } of scenes) {
-      // Scene title as heading
-      children.push(
-        new Paragraph({
-          text: metadata.title,
-          heading: HeadingLevel.HEADING_1,
-          spacing: { before: 480, after: 240 }
-        })
-      )
-
-      // Scene content — split into paragraphs by blank lines
-      const paragraphs = content.split(/\n\n+/).filter(p => p.trim() !== '')
-
-      for (const para of paragraphs) {
-        const text = para
-          .replace(/^#{1,6}\s+/, '') // Strip markdown headings
-          .replace(/\*\*(.*?)\*\*/g, '$1') // Strip bold
-          .replace(/\*(.*?)\*/g, '$1') // Strip italic
-          .replace(/\n/g, ' ') // Join lines
-          .trim()
-
-        if (text === '') continue
-
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text, size: 24 })],
-            spacing: { before: 0, after: 240 },
-            alignment: AlignmentType.LEFT,
-            indent: { firstLine: 720 }
-          })
-        )
-      }
-    }
-
-    // Read project metadata for title page
-    const projectRaw = await adapter.readFile(join(currentProjectPath, 'project.json'))
-    const project = JSON.parse(projectRaw)
-
-    const doc = new Document({
-      sections: [{
-        properties: {
-          page: {
-            size: {
-              width: 12240,
-              height: 15840
-            },
-            margin: {
-              top: 1440,
-              right: 1440,
-              bottom: 1440,
-              left: 1440
-            }
-          }
-        },
-        children: [
-          // Title page
-          new Paragraph({
-            children: [new TextRun({ text: project.title, size: 48, bold: true })],
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 2880, after: 480 }
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: project.author, size: 28 })],
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 0, after: 0 }
-          }),
-          // Scene content
-          ...children
-        ]
-      }]
-    })
-
-    const buffer = await Packer.toBuffer(doc)
-    await adapter.writeFile(result.filePath, buffer.toString('binary'))
-
-    // Verify the file was written correctly using binary write
-    const { writeFileSync } = await import('fs')
-    writeFileSync(result.filePath, buffer)
-
-    await dialog.showMessageBox({
-      type: 'info',
-      title: 'Export Complete',
-      message: `Manuscript exported successfully.`,
-      detail: `Saved to: ${result.filePath}`
-    })
-
-    return true
-  } catch (error) {
-    console.error('Failed to export manuscript:', error)
-    await dialog.showMessageBox({
-      type: 'error',
-      title: 'Export Failed',
-      message: 'Failed to export manuscript.',
-      detail: String(error)
-    })
-    return false
-  }
-})
 
 // ── Character Handlers ───────────────────────────────────────────────────────
 
