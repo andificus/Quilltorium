@@ -6,6 +6,22 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.3.0 — 2026-04-20
+
+### Added
+- Recent projects list on welcome screen with click-to-open
+- Project settings panel (title, author, word count goal)
+- Word count goal now reads from project settings in Stats panel
+- Manuscript export modal with status filter and scene title toggle
+- Timeline view with manuscript and chronological modes
+- Lore wiki with [[wikilink]] highlighting and backlinks panel
+- Wikilinks navigate to lore pages, characters, and locations
+- Notes inbox with quick capture and promote to scene/character/location/lore
+- Fix Node.js 24 in GitHub Actions workflow
+
+
+---
+
 ## v0.2.0 — 2026-04-19
 
 ### Added
