@@ -172,6 +172,7 @@ ipcMain.handle('project:open', async () => {
     metadata.lastOpened = new Date().toISOString()
     await adapter.writeFile(projectJsonPath, JSON.stringify(metadata, null, 2))
     currentProjectPath = projectPath
+    await addRecentProject(projectPath, metadata.title)
     return metadata
   } catch (error) {
     console.error('Failed to open project:', error)
@@ -225,6 +226,7 @@ ipcMain.handle('project:create', async (_event, title: string, author: string) =
     )
 
     currentProjectPath = projectPath
+    await addRecentProject(projectPath, metadata.title)
     return metadata
   } catch (error) {
     console.error('Failed to create project:', error)
@@ -1042,6 +1044,98 @@ ipcMain.handle('locations:update-metadata', async (
   } catch (error) {
     console.error('Failed to update location metadata:', error)
     return false
+  }
+})
+
+// ── Recent Projects ──────────────────────────────────────────────────────────
+
+/** Path to the app-level settings file (outside any project folder) */
+function getAppSettingsPath(): string {
+  return join(app.getPath('userData'), 'app-settings.json')
+}
+
+interface AppSettings {
+  recentProjects: Array<{ path: string; title: string; lastOpened: string }>
+}
+
+/** Read the app settings file */
+async function readAppSettings(): Promise<AppSettings> {
+  try {
+    const settingsPath = getAppSettingsPath()
+    const exists = await adapter.exists(settingsPath)
+    if (!exists) return { recentProjects: [] }
+    const raw = await adapter.readFile(settingsPath)
+    return JSON.parse(raw) as AppSettings
+  } catch {
+    return { recentProjects: [] }
+  }
+}
+
+/** Write the app settings file */
+async function writeAppSettings(settings: AppSettings): Promise<void> {
+  try {
+    await adapter.writeFile(getAppSettingsPath(), JSON.stringify(settings, null, 2))
+  } catch (error) {
+    console.error('Failed to write app settings:', error)
+  }
+}
+
+/** Add or update a project in the recent projects list */
+async function addRecentProject(path: string, title: string): Promise<void> {
+  const settings = await readAppSettings()
+  const now = new Date().toISOString()
+
+  // Remove existing entry for this path if present
+  const filtered = settings.recentProjects.filter(p => p.path !== path)
+
+  // Add to front of list, keep max 10
+  settings.recentProjects = [
+    { path, title, lastOpened: now },
+    ...filtered
+  ].slice(0, 10)
+
+  await writeAppSettings(settings)
+}
+
+/** Get the list of recent projects */
+ipcMain.handle('app:get-recent-projects', async () => {
+  const settings = await readAppSettings()
+  return settings.recentProjects
+})
+
+/** Open a recent project directly by path */
+ipcMain.handle('app:open-recent-project', async (
+  _event,
+  projectPath: string
+): Promise<ProjectMetadata | null> => {
+  const projectJsonPath = join(projectPath, 'project.json')
+
+  try {
+    const exists = await adapter.exists(projectJsonPath)
+    if (!exists) {
+      await dialog.showMessageBox({
+        type: 'error',
+        title: 'Project Not Found',
+        message: 'This project folder could not be found.',
+        detail: 'It may have been moved or deleted. It will be removed from your recent projects list.'
+      })
+      // Remove from recent projects
+      const settings = await readAppSettings()
+      settings.recentProjects = settings.recentProjects.filter(p => p.path !== projectPath)
+      await writeAppSettings(settings)
+      return null
+    }
+
+    const raw = await adapter.readFile(projectJsonPath)
+    const metadata: ProjectMetadata = JSON.parse(raw)
+    metadata.lastOpened = new Date().toISOString()
+    await adapter.writeFile(projectJsonPath, JSON.stringify(metadata, null, 2))
+    currentProjectPath = projectPath
+    await addRecentProject(projectPath, metadata.title)
+    return metadata
+  } catch (error) {
+    console.error('Failed to open recent project:', error)
+    return null
   }
 })
 

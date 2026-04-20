@@ -37,6 +37,8 @@ declare global {
         locationId: string,
         updates: Partial<LocationMetadata>
       ): Promise<boolean>
+      getRecentProjects(): Promise<Array<{ path: string; title: string; lastOpened: string }>>
+      openRecentProject(projectPath: string): Promise<ProjectMetadata | null>
     }
   }
 }
