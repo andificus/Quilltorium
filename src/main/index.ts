@@ -51,6 +51,11 @@ function createWindow(): void {
  * Nothing downloads or installs without explicit user confirmation.
  */
 function setupUpdater(): void {
+  // Read prerelease preference from app settings
+  readAppSettings().then(settings => {
+    autoUpdater.allowPrerelease = settings.allowPrerelease
+  })
+
   // CRITICAL: never change these to true
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = false
@@ -1047,6 +1052,7 @@ function getAppSettingsPath(): string {
 
 interface AppSettings {
   recentProjects: Array<{ path: string; title: string; lastOpened: string }>
+  allowPrerelease: boolean
 }
 
 /** Read the app settings file */
@@ -1054,11 +1060,12 @@ async function readAppSettings(): Promise<AppSettings> {
   try {
     const settingsPath = getAppSettingsPath()
     const exists = await adapter.exists(settingsPath)
-    if (!exists) return { recentProjects: [] }
+    if (!exists) return { recentProjects: [], allowPrerelease: false }
     const raw = await adapter.readFile(settingsPath)
-    return JSON.parse(raw) as AppSettings
+    const parsed = JSON.parse(raw) as AppSettings
+    return { ...{ recentProjects: [], allowPrerelease: false }, ...parsed }
   } catch {
-    return { recentProjects: [] }
+    return { recentProjects: [], allowPrerelease: false }
   }
 }
 
@@ -1733,6 +1740,48 @@ ipcMain.handle('notes:promote-to-lore', async (
   } catch (error) {
     console.error('Failed to promote note to lore:', error)
     return null
+  }
+})
+
+/** Get app-level settings */
+ipcMain.handle('app:get-settings', async () => {
+  return await readAppSettings()
+})
+
+/** Save app-level settings */
+ipcMain.handle('app:save-settings', async (
+  _event,
+  updates: Partial<AppSettings>
+): Promise<boolean> => {
+  try {
+    const current = await readAppSettings()
+    const updated = { ...current, ...updates }
+    await writeAppSettings(updated)
+
+    // Apply prerelease setting immediately to the updater
+    autoUpdater.allowPrerelease = updated.allowPrerelease
+    return true
+  } catch (error) {
+    console.error('Failed to save app settings:', error)
+    return false
+  }
+})
+
+/** Manually check for updates */
+ipcMain.handle('app:check-for-updates', async (): Promise<string> => {
+  try {
+    const settings = await readAppSettings()
+    autoUpdater.allowPrerelease = settings.allowPrerelease
+
+    const result = await autoUpdater.checkForUpdates()
+    if (!result) return 'no-update'
+
+    // If update-available event fires it will handle the dialog
+    // Return the version found
+    return result.updateInfo.version
+  } catch (error) {
+    console.error('Update check failed:', error)
+    return 'error'
   }
 })
 

@@ -103,9 +103,11 @@
           {#if $appState.activeSection === 'stats'}
             <StatsView />
           {:else if $appState.activeSection === 'plot'}
-            <PlotBoardView /> 
+            <PlotBoardView />
           {:else if $appState.activeSection === 'timeline'}
             <TimelineView />
+          {:else if $appState.activeSection === 'settings'}
+            <ProjectSettingsView />
           {:else if $appState.activeSection === 'notes'}
             <NotesView />
           {:else if $appState.activeSection === 'characters'}
@@ -113,9 +115,9 @@
               {#key $appState.activeCharacterId}
                 <CharacterEditor characterId={$appState.activeCharacterId} />
               {/key}
-                <CharacterMetadataPanel characterId={$appState.activeCharacterId} />
+              <CharacterMetadataPanel characterId={$appState.activeCharacterId} />
             {:else}
-                <div class="editor-placeholder">Select a character to view their sheet</div>
+              <div class="editor-placeholder">Select a character to view their sheet</div>
             {/if}
           {:else if $appState.activeSection === 'locations'}
             {#if $appState.activeLocationId}
@@ -125,7 +127,7 @@
               <LocationMetadataPanel locationId={$appState.activeLocationId} />
             {:else}
               <div class="editor-placeholder">Select a location to view its page</div>
-              {/if}
+            {/if}
           {:else if $appState.activeSection === 'lore'}
             {#if $appState.activeLoreId}
               {#key $appState.activeLoreId}
@@ -134,7 +136,7 @@
               <LoreMetadataPanel loreId={$appState.activeLoreId} />
             {:else}
               <div class="editor-placeholder">Select a lore page to start writing</div>
-            {/if}  
+            {/if}
           {:else if $appState.activeSceneId}
             {#key $appState.activeSceneId}
               <SceneEditor sceneId={$appState.activeSceneId} />
@@ -142,8 +144,6 @@
             <SceneMetadataPanel sceneId={$appState.activeSceneId} />
           {:else}
             <div class="editor-placeholder">Select a scene to start writing</div>
-          {:else if $appState.activeSection === 'settings'}
-            <ProjectSettingsView />
           {/if}
         </div>
       </div>

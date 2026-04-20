@@ -1,10 +1,14 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { appState, setProjectMetadata } from '../stores/app'
 
   $: metadata = $appState.projectMetadata
 
   let saving = false
   let saved = false
+  let allowPrerelease = false
+  let checkingForUpdates = false
+  let updateCheckResult = ''
 
   // Local form state
   let title = ''
@@ -18,13 +22,37 @@
     targetWordCount = metadata.settings.targetWordCount?.toString() ?? ''
   }
 
+  onMount(async () => {
+    const settings = await window.api.getAppSettings()
+    allowPrerelease = settings.allowPrerelease
+  })
+
+  async function handlePrereleaseToggle(): Promise<void> {
+    allowPrerelease = !allowPrerelease
+    await window.api.saveAppSettings({ allowPrerelease })
+  }
+
+  async function handleCheckForUpdates(): Promise<void> {
+    checkingForUpdates = true
+    updateCheckResult = ''
+    const result = await window.api.checkForUpdates()
+    checkingForUpdates = false
+    if (result === 'error') {
+      updateCheckResult = 'Failed to check for updates. Check your internet connection.'
+    } else if (result === 'no-update') {
+      updateCheckResult = 'You are on the latest version.'
+    } else {
+      updateCheckResult = `Update found: v${result} — check the download dialog.`
+    }
+  }
+
   async function handleSave(): Promise<void> {
     if (!metadata) return
     saving = true
 
     const wordCountNum = targetWordCount === '' || targetWordCount === null || targetWordCount === undefined
-        ? null
-        : parseInt(String(targetWordCount))
+      ? null
+      : parseInt(String(targetWordCount))
 
     const updates = {
       title: title.trim() || metadata.title,
@@ -40,7 +68,6 @@
       const updated = await window.api.getProjectMetadata()
       if (updated) {
         setProjectMetadata(updated)
-        // Update the titlebar
         appState.update(s => ({ ...s, projectTitle: updated.title }))
       }
       saved = true
@@ -96,6 +123,39 @@
             min="0"
           />
           <p class="field-hint">Used for progress tracking in the Stats panel. Leave blank for no goal.</p>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3 class="card-title">Updates</h3>
+
+        <div class="field">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-label">Allow pre-release updates</span>
+              <p class="field-hint">Receive early access builds before they are officially released. May be less stable.</p>
+            </div>
+            <button
+              class="toggle-btn"
+              class:active={allowPrerelease}
+              on:click={handlePrereleaseToggle}
+            >
+              {allowPrerelease ? 'On' : 'Off'}
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <button
+            class="btn-check-updates"
+            on:click={handleCheckForUpdates}
+            disabled={checkingForUpdates}
+          >
+            {checkingForUpdates ? 'Checking...' : 'Check for Updates'}
+          </button>
+          {#if updateCheckResult}
+            <p class="update-result">{updateCheckResult}</p>
+          {/if}
         </div>
       </div>
 
@@ -281,4 +341,75 @@
     font-family: var(--font-ui);
     font-size: 13px;
   }
+
+  .toggle-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.toggle-label {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.toggle-btn {
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  border: none;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-btn.active {
+  background: var(--color-accent);
+  color: #1a1a1f;
+}
+
+.btn-check-updates {
+  padding: 8px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.btn-check-updates:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.btn-check-updates:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.update-result {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
 </style>

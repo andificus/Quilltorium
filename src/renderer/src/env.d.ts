@@ -60,6 +60,9 @@ declare global {
       promoteToCharacter(noteId: string, name: string): Promise<CharacterMetadata | null>
       promoteToLocation(noteId: string, name: string): Promise<LocationMetadata | null>
       promoteToLore(noteId: string, title: string): Promise<LoreMetadata | null>
+      getAppSettings(): Promise<{ recentProjects: unknown[]; allowPrerelease: boolean }>
+      saveAppSettings(updates: { allowPrerelease?: boolean }): Promise<boolean>
+      checkForUpdates(): Promise<string>
     }
   }
 }

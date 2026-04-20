@@ -142,6 +142,15 @@ const api = {
 
   promoteToLore: (noteId: string, title: string): Promise<LoreMetadata | null> =>
     ipcRenderer.invoke('notes:promote-to-lore', noteId, title),
+
+  getAppSettings: (): Promise<{ recentProjects: unknown[]; allowPrerelease: boolean }> =>
+    ipcRenderer.invoke('app:get-settings'),
+
+  saveAppSettings: (updates: { allowPrerelease?: boolean }): Promise<boolean> =>
+    ipcRenderer.invoke('app:save-settings', updates),
+
+  checkForUpdates: (): Promise<string> =>
+    ipcRenderer.invoke('app:check-for-updates'),
 }
 
 if (process.contextIsolated) {
