@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { ElectronAdapter } from '../../src-shared/storage/ElectronAdapter'
-import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata } from '../../src-shared/types'
+import type { ProjectMetadata, SceneMetadata, CharacterMetadata, LocationMetadata, LoreMetadata } from '../../src-shared/types'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx'
 
 
@@ -1158,6 +1158,248 @@ ipcMain.handle('project:update-settings', async (
   } catch (error) {
     console.error('Failed to update project settings:', error)
     return false
+  }
+})
+
+// ── Lore Handlers ────────────────────────────────────────────────────────────
+
+/** List all lore pages for the current project, sorted alphabetically */
+ipcMain.handle('lore:list', async (): Promise<LoreMetadata[]> => {
+  if (!currentProjectPath) return []
+
+  try {
+    const loreDir = join(currentProjectPath, 'lore')
+    const files = await adapter.listFiles(loreDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    const pages: LoreMetadata[] = []
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        pages.push(JSON.parse(raw) as LoreMetadata)
+      } catch {
+        // Skip malformed files
+      }
+    }
+
+    return pages.sort((a, b) => a.title.localeCompare(b.title))
+  } catch (error) {
+    console.error('Failed to list lore pages:', error)
+    return []
+  }
+})
+
+/** Create a new lore page */
+ipcMain.handle('lore:create', async (
+  _event,
+  title: string
+): Promise<LoreMetadata | null> => {
+  if (!currentProjectPath) return null
+
+  try {
+    const loreDir = join(currentProjectPath, 'lore')
+
+    const baseSlug = slugify(title)
+    let slug = baseSlug
+    let counter = 1
+
+    while (await adapter.exists(join(loreDir, `${slug}.json`))) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+    }
+
+    const now = new Date().toISOString()
+    const metadata: LoreMetadata = {
+      id: crypto.randomUUID(),
+      slug,
+      title,
+      tags: [],
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await adapter.writeFile(join(loreDir, `${slug}.md`), `# ${title}\n\n`)
+    await adapter.writeFile(
+      join(loreDir, `${slug}.json`),
+      JSON.stringify(metadata, null, 2)
+    )
+
+    return metadata
+  } catch (error) {
+    console.error('Failed to create lore page:', error)
+    return null
+  }
+})
+
+/** Read a lore page's Markdown content */
+ipcMain.handle('lore:read', async (
+  _event,
+  loreId: string
+): Promise<string> => {
+  if (!currentProjectPath) return ''
+
+  try {
+    const loreDir = join(currentProjectPath, 'lore')
+    const files = await adapter.listFiles(loreDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LoreMetadata
+        if (metadata.id === loreId) {
+          return await adapter.readFile(file.replace('.json', '.md'))
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return ''
+  } catch (error) {
+    console.error('Failed to read lore page:', error)
+    return ''
+  }
+})
+
+/** Save a lore page's Markdown content */
+ipcMain.handle('lore:save', async (
+  _event,
+  loreId: string,
+  content: string
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const loreDir = join(currentProjectPath, 'lore')
+    const files = await adapter.listFiles(loreDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LoreMetadata
+        if (metadata.id === loreId) {
+          await adapter.writeFile(file.replace('.json', '.md'), content)
+          metadata.updatedAt = new Date().toISOString()
+          await adapter.writeFile(file, JSON.stringify(metadata, null, 2))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to save lore page:', error)
+    return false
+  }
+})
+
+/** Delete a lore page */
+ipcMain.handle('lore:delete', async (
+  _event,
+  loreId: string
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const loreDir = join(currentProjectPath, 'lore')
+    const files = await adapter.listFiles(loreDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LoreMetadata
+        if (metadata.id === loreId) {
+          await adapter.deleteFile(file)
+          await adapter.deleteFile(file.replace('.json', '.md'))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to delete lore page:', error)
+    return false
+  }
+})
+
+/** Update a lore page's metadata */
+ipcMain.handle('lore:update-metadata', async (
+  _event,
+  loreId: string,
+  updates: Partial<LoreMetadata>
+): Promise<boolean> => {
+  if (!currentProjectPath) return false
+
+  try {
+    const loreDir = join(currentProjectPath, 'lore')
+    const files = await adapter.listFiles(loreDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LoreMetadata
+        if (metadata.id === loreId) {
+          const updated = {
+            ...metadata,
+            ...updates,
+            id: metadata.id,
+            slug: metadata.slug,
+            createdAt: metadata.createdAt,
+            updatedAt: new Date().toISOString()
+          }
+          await adapter.writeFile(file, JSON.stringify(updated, null, 2))
+          return true
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to update lore metadata:', error)
+    return false
+  }
+})
+
+/** Get backlinks — find all lore pages that link to a given slug */
+ipcMain.handle('lore:get-backlinks', async (
+  _event,
+  targetSlug: string
+): Promise<LoreMetadata[]> => {
+  if (!currentProjectPath) return []
+
+  try {
+    const loreDir = join(currentProjectPath, 'lore')
+    const files = await adapter.listFiles(loreDir)
+    const jsonFiles = files.filter(f => f.endsWith('.json'))
+
+    const backlinks: LoreMetadata[] = []
+    const wikilinkPattern = new RegExp(`\\[\\[${targetSlug}\\]\\]`, 'i')
+
+    for (const file of jsonFiles) {
+      try {
+        const raw = await adapter.readFile(file)
+        const metadata = JSON.parse(raw) as LoreMetadata
+        if (metadata.slug === targetSlug) continue
+        const mdContent = await adapter.readFile(file.replace('.json', '.md'))
+        if (wikilinkPattern.test(mdContent)) {
+          backlinks.push(metadata)
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+
+    return backlinks.sort((a, b) => a.title.localeCompare(b.title))
+  } catch (error) {
+    console.error('Failed to get backlinks:', error)
+    return []
   }
 })
 
